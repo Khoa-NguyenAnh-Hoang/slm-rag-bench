@@ -1,0 +1,20 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Run artifacts (regenerable)
+scratch/
+outputs/*
+!outputs/.gitkeep
+
+# Model / data caches
+.cache/
+
+# Scratch JSONL (HF row dumps, BM25 corpus inputs) — regenerable, and large.
+# NOT a blanket *.jsonl: results/<cell_id>/queries.jsonl is the per-query measurement record
+# and MUST be committed, so a blanket rule would silently drop every cell's raw data from
+# version control and make the scorecard unreproducible.
+scratch/**/*.jsonl
+outputs/**/*.jsonl

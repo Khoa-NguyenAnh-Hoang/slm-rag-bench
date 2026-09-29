@@ -1,0 +1,36 @@
+# Cost model — Phase 2 locked decision 2: TWO labelled numbers per cell, never 0.0.
+#
+#   api_usd_per_1m — token counts × these rates. This is a PROXY: it prices each open-weight
+#                    model as if it were commercially served, so "faithfulness per dollar" is
+#                    comparable to API-priced baselines (EvaRAG prices its SQuAD runs this way).
+#                    It is NOT what the experiment cost.
+#   gpu_usd_per_hour — measured wall-clock × this rate. This IS what the experiment cost, and it
+#                    is the honest number for local/colab hardware.
+#
+# !!! VERIFY BEFORE REPORTING !!!
+# The api rates below are plausible hosted list prices, NOT verified against any provider page.
+# `verified: false` is carried into the scorecard, so a stale rate is visible in the published
+# artifact rather than buried in a config file. Set it to true and record provider + retrieval
+# date in `source` once checked. A benchmark that reports unverified prices as measurements is
+# worse than one that reports no price at all.
+
+version: 2026-09-29-unverified
+gpu_usd_per_hour: 0.35       # T4-class rented GPU. Adjust to what you actually paid. For free
+                              # Colab T4 pass a nominal 0.0 WITH a note — never a silent 0.
+
+providers:
+  qwen2.5-1.5b:
+    label: Qwen2.5-1.5B-Instruct
+    api_usd_per_1m: {prompt: 0.10, completion: 0.10}
+    verified: false
+    source: "TODO — check the provider pricing page, record provider + retrieval date here"
+  qwen3-4b:
+    label: Qwen3-4B-Instruct-2507
+    api_usd_per_1m: {prompt: 0.20, completion: 0.60}
+    verified: false
+    source: "TODO — check the provider pricing page, record provider + retrieval date here"
+  llama3.1-8b:
+    label: LLaMA-3.1-8B-Instruct
+    api_usd_per_1m: {prompt: 0.18, completion: 0.18}
+    verified: false
+    source: "TODO — check the provider pricing page, record provider + retrieval date here"

@@ -1,0 +1,88 @@
+# Phase 2 experiment definition — the 3x3 grid. This file IS the thesis's experimental design,
+# so it is versioned and copied verbatim into every cell's manifest.json.
+#
+# Run one cell:   uv run python -m src.runner.run_cell --only crag-qwen3-4b
+# Run everything:  uv run python -m src.runner.matrix          (Phase C)
+
+n: 300                      # eval queries per cell. Locked decision: 300, not the Blueprint's
+                            # 1200 — 1200 across 9 cells is ~70+ GPU-h of judging alone, past
+                            # the 30-60 GPU-h ceiling with no failure margin.
+seed: 42                    # Action Plan.md / Mala README convention
+output_root: results
+
+# eval_split and corpus.split MUST be the same split, and that is not a default — it is a
+# correctness requirement. A dev query's gold paragraphs are not in the train corpus (HotpotQA
+# splits by question, and the distractor paragraphs are per-question), so scoring retrieval for
+# dev queries against a train index measures corpus coverage, not retrieval quality: Coverage
+# collapses and every gold title looks absent. The reference implementation samples its eval
+# rows FROM the corpus it indexes (build_row_corpus over the same df), which is the only
+# self-consistent design. n=300 is drawn from the same 90,447 rows that build the corpus.
+eval_split: train
+
+# The RETRIEVAL CORPUS is deliberately much larger than n. A corpus built from only the n
+# evaluation questions is degenerate: 2 of 10 candidates are gold by construction, recall
+# saturates, and the baseline-vs-reranked ablation has nothing to separate. This is the
+# paper's 90,447-row train split ("90,000" in Mala) => ~904k paragraphs. Build is 30-60 min
+# ONCE, cached under scratch/index/<corpus-hash>/. Set max_paras to cap it for a fast local
+# run, but a capped corpus inflates every retrieval metric, so the cap is recorded in the
+# manifest and a capped run is not a publishable cell.
+corpus: {split: train, max_paras: null}
+
+retrieval:
+  sparse: pyserini          # pyserini | rank_bm25. pyserini matches the reference BM25 latency
+                            # (6.7 ms/query, Mala §3); rank_bm25 measures ~117 ms at 50k docs and
+                            # extrapolates to ~2.1 s at ~904k, which would dominate end-to-end
+                            # latency. pyserini needs JDK 17+ (Colab apt-get, see pyproject).
+  w_sparse: 0.7             # Mala §C
+  w_dense: 0.3
+  beta_rerank: 0.85         # final = 0.85*CE + 0.15*fused, Mala hybrid_pipeline:4370
+  top_k: 10                 # passages handed to the generator
+  cand_k: 30                # fusion candidate depth before rerank
+  metrics_ks: [1, 3, 5, 10] # retrieval metrics; depth is recorded per query, not assumed
+
+crag: {model: google/flan-t5-base, upper: 0.5, lower: -0.5, strip_top_n: 5}
+      # flan-t5-base (248M) is a PROXY for CRAG's trained 0.77B t5-large evaluator, whose
+      # checkpoint is not in-repo. tools/crag_validity.py scores the proxy against the vendored
+      # Code/CRAG-main/data/*/ref/ labels (Phase B, B4). _score is the only swap seam.
+
+generator: {max_new_tokens: 128, temperature: 0.0}
+
+# vLLM endpoint settings. These are GENERATOR settings — the judge is a client of this endpoint
+# in Phase A, so putting them under a key called `judge` would be actively misleading.
+serve:
+  host: 127.0.0.1
+  port: 8000
+  judge_port: 8001         # only used once B1 gives the judge its own weights
+  gpu_memory_utilization: 0.5   # 8 GB of 16. Retrieval models (~1.5 GB) stay CO-RESIDENT
+                                  # through the generation pass (Phase A, A1) => peak ~9.6 GB.
+                                  # If vLLM OOMs at load, drop to 0.45.
+  max_model_len: 4096
+  extra_args: []           # e.g. [--max-num-seqs, 1] to force single-sequence latency
+
+judge:
+  # Phase A: serve_id is null, so judge == generator (documented self-judge limitation, recorded
+  # as a manifest deviation). Phase B (B1) sets this to a different model and the roles diverge.
+  serve_id: null
+  mode: JSON               # vLLM guided-JSON honors response_format; MD_JSON is the fallback
+  probe_min_pass: 4
+
+# The 3 pipelines are NOT listed here: they are Pipeline dataclasses in src/pipeline.py and
+# naming them in two places would mean editing one and silently running the other.
+models:
+  qwen2.5-1.5b:
+    label: Qwen2.5-1.5B-Instruct
+    model_id: Qwen/Qwen2.5-1.5B-Instruct          # fp16 source of record for the thesis
+    serve_id: Qwen/Qwen2.5-1.5B-Instruct-AWQ      # OFFICIAL 4-bit, 145,532 dl (public)
+    quantization: awq
+  qwen3-4b:
+    label: Qwen3-4B-Instruct-2507
+    model_id: Qwen/Qwen3-4B-Instruct-2507         # ungated
+    serve_id: cyankiwi/Qwen3-4B-Instruct-2507-AWQ-4bit   # COMMUNITY 4-bit, 23,014 dl.
+                                                   # Qwen publishes no official AWQ of the
+                                                   # 2507-Instruct revision — declared deviation.
+    quantization: awq
+  llama3.1-8b:
+    label: LLaMA-3.1-8B-Instruct
+    model_id: meta-llama/Meta-Llama-3.1-8B-Instruct    # GATED: accept the licence on HF first
+    serve_id: hugging-quants/Meta-Llama-3.1-8B-Instruct-AWQ-INT4   # OFFICIAL, 154,354 dl
+    quantization: awq
