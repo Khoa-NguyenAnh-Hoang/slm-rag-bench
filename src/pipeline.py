@@ -135,30 +135,47 @@ def answer_query(
 
 
 def label(answer: str, gold: str) -> str:
-    """Deterministic Correct/Hallucinated/NoAnswer labels (Mala et al. §E three-way protocol).
+    """Deterministic Correct / Hallucinated / NoAnswer / Unknown labels (Mala et al. §E
+    three-way protocol, plus a fourth state this repo needs).
 
-    Deterministic string matching, NOT the paper's claude-sonnet-4.5 judge — that is
-    prohibited by the $0 constraint and is replaced by an LLM judge in Phase B
-    (src/monitor/labels.py). Kept here because the hand-labelled agreement sample needs a
-    reproducible reference, and because yes/no HotpotQA answers are substring-matched exactly
-    (a `gold in answer` test alone is meaningless for "yes"/"no").
+    Deterministic string matching, NOT the paper's claude-sonnet-4.5 judge — that is prohibited
+    by the $0 constraint and is replaced by an LLM judge in Phase B (src/monitor/labels.py).
+    Kept because the hand-labelled agreement sample needs a reproducible reference, and because
+    yes/no HotpotQA answers are substring-matched exactly (a `gold in answer` test alone is
+    meaningless for "yes"/"no").
+
+    UNKNOWN is a fourth state, and it is load-bearing (contract rule 3). Without it an empty
+    `gold` fell through to `Hallucinated` — charging the model with hallucinating because *we*
+    lack the reference answer. That inflates the hallucination rate and depresses adjusted
+    accuracy: both headline numbers, both wrong, both in the direction that flatters the thesis.
+    `Unknown` is excluded from adjusted accuracy's denominator (see adjusted_accuracy), and
+    `run_cell` fails the run if any query is Unknown.
     """
     import re
 
+    from src.contract import UNKNOWN
+
+    g = gold.strip().lower().rstrip(".")
+    if not g:
+        return UNKNOWN
     a = answer.strip().lower()
     if ABSTAIN_TEXT.lower() in a or re.search(
             r"does not provide sufficient information|cannot answer|not enough information", a):
         return "NoAnswer"
-    g = gold.strip().lower().rstrip(".")
     if g in ("yes", "no"):
         return "Correct" if re.search(rf"\b{re.escape(g)}\b", a) else "Hallucinated"
-    return "Correct" if (g and g in a) else "Hallucinated"
+    return "Correct" if g in a else "Hallucinated"
 
 
-def adjusted_accuracy(labels: list[str]) -> float | None:
-    """Mala et al. §E: Correct / (Correct + Hallucinated) × 100. None when nothing was attempted,
-    which is a real outcome (a model that abstains on everything has no adjusted accuracy) and
-    must not be reported as 0%."""
+def adjusted_accuracy(labels: list[str]) -> float | float:
+    """Mala et al. §E: Correct / (Correct + Hallucinated) × 100.
+
+    Returns None when nothing was attempted — a model that abstains on everything has no
+    adjusted accuracy, and that is a real outcome, not 0%. `Unknown` labels (no reference
+    answer, contract rule 3) are excluded from the denominator for the same reason: they are
+    not attempts, so counting them as hallucinations would penalise the model for a gap in
+    our data. The count is reported separately so the exclusion is visible.
+    """
     c = labels.count("Correct")
     h = labels.count("Hallucinated")
     return 100.0 * c / (c + h) if (c + h) else None
@@ -224,8 +241,15 @@ if __name__ == "__main__":
     assert label("No it was not.", "yes") == "Hallucinated"
     assert label(ABSTAIN_TEXT, "yes") == "NoAnswer"
     assert label("The answer is Paris.", "paris") == "Correct"
+    # Rule 3: no reference answer => Unknown, never a fabricated verdict. Before this, an empty
+    # gold fell through to "Hallucinated" and charged the model for our missing data.
+    assert label("The answer is Paris.", "") == "Unknown", label("The answer is Paris.", "")
+    assert label("anything", "   ") == "Unknown"
     assert adjusted_accuracy(["Correct", "Hallucinated", "NoAnswer"]) == 50.0
+    # Unknown is not an attempt: excluded from the denominator, not charged as a hallucination.
+    assert adjusted_accuracy(["Correct", "Hallucinated", "Unknown"]) == 50.0
     assert adjusted_accuracy(["NoAnswer", "NoAnswer"]) is None
+    assert adjusted_accuracy(["Unknown", "Unknown"]) is None
     print("pipeline OK: 3 pipelines, stage sets",
           [sorted(answer_query(PIPELINES[n], FakeHy(), FakeCrag("Correct"), fake_gen, row)
                    .stage_latency_ms) for n in ("baseline", "reranked", "crag")])

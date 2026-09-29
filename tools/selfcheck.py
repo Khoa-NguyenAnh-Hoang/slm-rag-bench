@@ -16,11 +16,12 @@ import time
 # Order is cheap-before-expensive: pure-stdlib modules first so a syntax error surfaces in
 # seconds instead of after a 400 MB model download.
 CHECKS = [
+    "src.contract",                   # the measurement rules, and the scan of src/ for violations
     "src.monitor.retrieval_metrics",
     "src.monitor.metrics_logger",
     "src.pipeline",
-    "src.runner.run_cell",           # needs --self-check; it is the only CLI with a flag
-    "src.data.hotpot_loader",        # downloads HotpotQA on first run
+    "src.runner.run_cell",            # needs --self-check; it is the only CLI with a flag
+    "src.data.hotpot_loader",         # downloads HotpotQA on first run
     "src.retrieval.hybrid_reranker",  # downloads MPNet + MiniLM on first run
     "src.evaluator.crag_module",      # downloads flan-t5-base on first run
 ]

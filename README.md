@@ -39,6 +39,7 @@ uv sync --extra retrieval --extra serve    # Colab T4: pyserini + vLLM + instruc
 uv run python -m tools.selfcheck          # ALL CPU checks, one command, no GPU/network needed
 
 # or individually:
+uv run python -m src.contract              # the measurement rules + scan of src/ for violations
 uv run python -m src.monitor.retrieval_metrics
 uv run python -m src.monitor.metrics_logger
 uv run python -m src.pipeline
@@ -85,6 +86,28 @@ alive across cells of the same run.
 - **TTFT needs `stream=True`.** `serve_generate` raises if the server returns no usage block —
   token counts, and therefore the entire cost axis, depend on it. Never paper over that with a 0.
 
+## The measurement contract
+
+`src/contract.py` states the seven rules this benchmark runs on, and enforces them. New code is
+written against it, not around it:
+
+1. latency is **measured** by one outer timer, never summed from stages
+2. an unavailable measurement is `None`, never `0.0`
+3. a missing reference answer is `Unknown`, never a fabricated Correct/Hallucinated
+4. unknown key / missing usage / missing config → **raise**, never fall back
+5. scores carry their `depth`; costs carry the pricing `version` + `verified` flag
+6. `manifest.json` is written before any model loads
+7. every value is read from `experiment.yaml` at exactly one place
+
+Four of these are gates in `run_cell.phase_a_gates()`, so a violation **fails the run** rather
+than shipping. `contract.scan_source()` greps `src/` for fabricated-zero patterns (comments and
+docstrings blanked first, so prose about the rules doesn't trip it) and runs as a self-check.
+
+Rule 3 exists because the alternative was real: an empty `gold` used to fall through to
+`Hallucinated`, charging the model for *our* missing reference answer — inflating the
+hallucination rate and depressing adjusted accuracy, both headline numbers, both in the
+direction that flatters the thesis.
+
 ## Outputs
 
 ```
@@ -105,3 +128,6 @@ Phase A complete: observed end-to-end latency with co-resident retrieval models,
 retrieve/rerank stages, real corpus over the HF route (the raw-JSON hosts are dead), retrieval
 quality metrics, and two labelled cost numbers. Phase B (separate judge endpoint, LLM-judge
 labels + hand-annotated agreement sample, CRAG proxy validation) not started.
+
+**No cell has been run. There are no numbers yet** — the 30-query pilot on Colab T4 is the
+first thing that produces evidence, and it gates everything else.

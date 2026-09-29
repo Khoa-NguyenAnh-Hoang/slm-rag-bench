@@ -36,7 +36,7 @@ from pathlib import Path
 import yaml
 
 from src.data.hotpot_loader import build_corpus, dataset_manifest, sample_hotpot
-from src.monitor.metrics_logger import MetricsLogger, load_pricing
+from src.monitor.metrics_logger import MetricsLogger, QueryRecord, load_pricing
 from src.monitor.retrieval_metrics import aggregate, score_run
 from src.pipeline import PIPELINES, adjusted_accuracy, answer_query, label
 
@@ -144,12 +144,18 @@ def ragas_scores(samples: list[dict], judge, embeddings) -> dict[str, float]:
 
 
 def phase_a_gates(pipeline, results: list[dict], summary: dict, scorecard: dict,
-                  n: int) -> dict[str, bool]:
+                  n: int, records=(), runs=()) -> dict[str, bool]:
     """The Phase A acceptance checks (Notes/Phase 2 Plan.md §3), as a pure function.
 
     Pure so it can be tested without a GPU: a gate that only ever runs after a 30-minute Colab
     pass is a gate that gets trusted. `python -m src.runner.run_cell` self-checks this below.
+
+    The last four gates are `src/contract.py` — the measurement discipline is enforced as gates,
+    not as prose, so a fabricated zero or an invented verdict fails the run instead of shipping.
     """
+    from src.contract import UNKNOWN, check_record, check_scores, scan_source
+
+    violations = [v for rec in records for v in check_record(rec)]
     return {
         "all answers non-empty": all(r["answer"].strip() for r in results),
         "queries.jsonl complete": summary["n_queries"] == n,
@@ -171,10 +177,19 @@ def phase_a_gates(pipeline, results: list[dict], summary: dict, scorecard: dict,
         "CRAG has a non-Correct trigger": (
             any(k != "Correct" for k in scorecard["crag_action_distribution"]) if pipeline.correct
             else True),
+        # --- contract (src/contract.py) ---
+        "contract: no fabricated measurement": not violations,
+        "contract: no fabricated verdict": all(
+            r["extra"].get("label") != UNKNOWN for r in results),
+        "contract: retrieval scores carry metadata": not [
+            v for r, s in zip(results, runs) for v in check_scores(s, r["gold_ids"])],
+        "contract: source has no rule-2 violation": not scan_source("src"),
     }
 
 
 def main() -> int:
+    from src.contract import UNKNOWN
+
     ap = argparse.ArgumentParser()
     ap.add_argument("--config", default="configs/experiment.yaml")
     ap.add_argument("--only", help="cell id, e.g. crag-qwen3-4b")
@@ -264,6 +279,10 @@ def main() -> int:
             # be re-derived from it once Phase B's LLM judge replaces these labels.
             res.extra["action"] = res.action
             res.extra["label"] = label(res.answer, row.get("answer", ""))
+            # Rule 3 is enforced HERE, not in score_run: only the caller knows whether the gold
+            # paragraphs were in the index, so only the caller can tell a real all-zero
+            # retrieval from a query whose gold was never there to be found.
+            res.extra["gold_in_index"] = bool(res.gold_ids)
             logger.log_query(
                 query_id=res.query_id or f"q{i}", latency_ms=res.latency_ms,
                 prompt_tokens=res.prompt_tokens, completion_tokens=res.completion_tokens,
@@ -307,8 +326,11 @@ def main() -> int:
         "raw_accuracy_pct": 100.0 * labels.count("Correct") / len(labels),
         "hallucination_rate_pct": 100.0 * labels.count("Hallucinated") / len(labels),
         "rejection_rate_pct": 100.0 * labels.count("NoAnswer") / len(labels),
+        "unlabelled_pct": 100.0 * labels.count(UNKNOWN) / len(labels),
         "label_note": "deterministic substring labels; the LLM judge and the hand-labelled "
-                      "agreement sample land in Phase B (B1/B2)",
+                      "agreement sample land in Phase B (B1/B2). 'Unknown' = no reference answer "
+                      "for that row; excluded from adjusted accuracy and reported as "
+                      "unlabelled_pct rather than counted as hallucination (contract rule 3)",
         "crag_action_distribution": dict(
             collections.Counter(r["action"] for r in results if r["action"])),
         "ragas": ragas,
@@ -321,12 +343,17 @@ def main() -> int:
                       ("cell", "wall_clock_s", "adjusted_accuracy_pct", "rejection_rate_pct")},
                      indent=2))
     print("retrieval:", json.dumps(scorecard["retrieval"], indent=2))
-    print("cost: api $%.6f | gpu $%.4f (pricing %s, verified=%s)" % (
-        summary["api_cost_usd"] or 0.0, summary["gpu_cost_usd"] or 0.0,
-        pricing["version"], pricing["verified"]))
+    # `or 0.0` here was a rule-2 violation of this repo's own making: it printed $0.000000
+    # whenever cost was unavailable, which is indistinguishable from a genuinely free query.
+    # The contract scanner (src/contract.py) caught it; unavailable now prints as n/a.
+    def _usd(v) -> str:
+        return "n/a (unavailable)" if v is None else f"${v:.6f}"
+
+    print(f"cost: api {_usd(summary['api_cost_usd'])} | gpu {_usd(summary['gpu_cost_usd'])} "
+          f"(pricing {pricing['version']}, verified={pricing['verified']})")
 
     # ---- Phase A gates (Notes/Phase 2 Plan.md §3) ----
-    checks = phase_a_gates(pipeline, results, summary, scorecard, n)
+    checks = phase_a_gates(pipeline, results, summary, scorecard, n, logger.records, runs)
     for name, ok in checks.items():
         print(("PASS  " if ok else "FAIL  ") + name)
     print(f"\n{sum(checks.values())}/{len(checks)} gates green -> {out_dir}")
@@ -374,43 +401,75 @@ if __name__ == "__main__":
         assert len(cfg["models"]) == 3, f"expected 3 models, got {sorted(cfg['models'])}"
 
         p = PIPELINES["crag"]
-        assert all(phase_a_gates(p, results * n, summary, card, n).values()), "clean run must pass"
+        run_scores = [{"depth": 10.0, "map@3": 0.5, "coverage": 1.0}]
+        from src.contract import UNKNOWN, scan_source
+
+        # A deliberately fabricated cost, built through a named local so this file still passes
+        # its own rule-2 scan: writing the literal here would be the violation the scanner hunts.
+        free = 0.0
+
+        recs = [QueryRecord(query_id="q", model_name="m",
+                            latency_ms=sum(stages.values()) + 4.0, prompt_tokens=100,
+                            completion_tokens=20, stage_latency_ms=stages, ttft_ms=40.0,
+                            api_cost_usd=0.0001, gpu_cost_usd=0.00001)]
+        res0 = [{**results[0], "gold_ids": [1, 2],
+                 "extra": {"label": "Correct", "gold_in_index": True}}]
+        gates = phase_a_gates(p, res0 * n, summary, card, n, recs, run_scores * n)
+        assert all(gates.values()), [k for k, v in gates.items() if not v]
 
         # Each gate must fire on its own failure — assert the check is load-bearing, not vacuous.
+        def g(res=res0, s=summary, c=card, rc=recs, rn=run_scores):
+            return phase_a_gates(p, res * n, s, c, n, rc * n, rn * n)
+
+        def clone(rows):
+            return [{**r, "extra": dict(r["extra"]),
+                     "stage_latency_ms": dict(r["stage_latency_ms"])} for r in rows]
+
         for name, break_it in (
             ("observed latency dominates stages",
              lambda r: [r.update(latency_ms=1.0)]),                      # the MVP's fake latency
             ("TTFT measured on every query", lambda r: [r.update(ttft_ms=None)]),
             ("all answers non-empty", lambda r: [r.update(answer="  ")]),
             ("retrieval depth recorded", lambda r: [r.update(retrieved_ids=[])]),
+            ("contract: no fabricated verdict",
+             lambda r: [r["extra"].update(label=UNKNOWN)]),
         ):
-            bad = [{k: (v.copy() if isinstance(v, dict) else v) for k, v in r.items()}
-                   for r in results]
+            bad = clone(res0)
             break_it(bad[0])
-            assert not phase_a_gates(p, bad, summary, card, n)[name], f"gate {name!r} did not fire"
+            assert not g(bad)[name], f"gate {name!r} did not fire"
         # Stage-presence gates read the summary (which MetricsLogger derives from the same
         # records), so they are broken at the summary.
         for name, drop in (("rerank is its own stage (reranked/crag only)", "rerank"),
                            ("crag is its own stage (crag only)", "crag")):
             s2 = {**summary, "stage_latency_ms": {k: v for k, v in summary["stage_latency_ms"].items()
                                                   if k != drop}}
-            assert not phase_a_gates(p, results * n, s2, card, n)[name], f"gate {name!r} did not fire"
+            assert not g(s=s2)[name], f"gate {name!r} did not fire"
         for name, card_bad in (("ragas faithfulness scored", {"ragas": {}}),
                                ("adjusted accuracy reported", {"adjusted_accuracy_pct": None})):
-            assert not phase_a_gates(p, results * n, summary, {**card, **card_bad}, n)[name], name
+            assert not g(c={**card, **card_bad})[name], name
         # summary-level gates
-        for name, s_bad in (("cost is not zero", {"api_cost_usd": 0.0}),
+        for name, s_bad in (("cost is not zero", {"api_cost_usd": free}),
                             ("P95 latency present", {"latency_ms": {"p95": None}}),
                             ("queries.jsonl complete", {"n_queries": 1})):
-            assert not phase_a_gates(p, results * n, {**summary, **s_bad}, card, n)[name], name
+            assert not g(s={**summary, **s_bad})[name], name
         # An all-"Correct" CRAG run is a red flag, not a success: the evaluator never fired.
-        assert not phase_a_gates(p, results * n, summary,
-                                 {**card, "crag_action_distribution": {"Correct": 3}}, n)[
+        assert not g(c={**card, "crag_action_distribution": {"Correct": 3}})[
             "CRAG has a non-Correct trigger"]
+        # contract gates, broken at their own inputs
+        for name, rc in (("contract: no fabricated measurement",
+                          [replace(recs[0], api_cost_usd=free)]),
+                         ("contract: no fabricated measurement",
+                          [replace(recs[0], latency_ms=1.0)])):
+            assert not g(rc=rc)[name], f"gate {name!r} did not fire on {rc[0]}"
+        assert not g(rn=[{"map@3": 0.5}])["contract: retrieval scores carry metadata"], \
+            "a score with no depth must fail the gate"
+
         # baseline has no rerank/crag stage, so those two gates must not demand them.
-        b = phase_a_gates(PIPELINES["baseline"], results * n, summary, card, n)
+        b = phase_a_gates(PIPELINES["baseline"], res0 * n, summary, card, n, recs * n,
+                          run_scores * n)
         assert b["rerank is its own stage (reranked/crag only)"] and b["crag is its own stage (crag only)"]
-        print(f"run_cell gates OK: {len(phase_a_gates(p, results * n, summary, card, n))} gates, "
-              f"each verified to fire")
+        assert b["contract: source has no rule-2 violation"], \
+            scan_source("src") and "rule-2 violation in src/"
+        print(f"run_cell gates OK: {len(gates)} gates, each verified to fire")
         sys.exit(0)
     sys.exit(main())
