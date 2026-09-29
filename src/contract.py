@@ -1,34 +1,26 @@
-"""The measurement contract — the rules that must hold before any component is written.
+"""The measurement contract — the rules any new component is written against.
 
-This module exists because the rules were discovered the expensive way. Each one below is a
-defect that this repo actually produced, or that a silently-fabricated value would have
-produced, and that a reader of the finished benchmark could not detect.
+Not "be careful". Seven rules, each with a machine check here, four of them wired into
+`run_cell.phase_a_gates()` so a violation fails the run instead of annotating it. Each exists
+because this repo already produced the defect it forbids, or would have shipped a value that
+looked measured and was not.
 
-Write new code (retrieval, judging, a fourth pipeline) *against* this file. The discipline is
-not "be careful" — it is these seven rules, each with a machine check in this module and each
-wired into `run_cell.phase_a_gates()` so a violation fails the run rather than annotating it.
-
-  1. MEASURED, NOT DERIVED.  latency_ms comes from one timer around the whole chain. It is
-     never a sum of separately-timed stages. (The MVP reported `sum(stage_latency_ms)`, a sum of
-     distributions, as if it were an observation.)
+  1. MEASURED, NOT DERIVED.  latency_ms comes from one timer around the whole chain, never a
+     sum of separately-timed stages.
   2. NEVER FABRICATE A ZERO.  An unavailable measurement is None/absent, never 0.0. A benchmark
      reporting $0.00 looks like a measurement and is worse than one reporting nothing.
-  3. NEVER FABRICATE A VERDICT.  If the gold answer is missing, the label is Unknown — not
-     Hallucinated. Charging a model with hallucinating because *we* lack the reference answer
-     inflates the hallucination rate and depresses adjusted accuracy: both headline numbers,
-     both wrong, both in the direction that flatters the thesis.
-  4. NO SILENT DEFAULTS ON A TRUST BOUNDARY.  An unknown model key, a missing config key, a
-     missing usage block: raise. Never fall back.
+  3. NEVER FABRICATE A VERDICT.  If the reference answer is missing the label is Unknown, never
+     Hallucinated — charging a model with hallucinating because *we* lack the gold inflates the
+     hallucination rate and depresses adjusted accuracy, both headline numbers, both wrong in the
+     direction that flatters the result.
+  4. NO SILENT DEFAULTS ON A TRUST BOUNDARY.  Unknown model key, missing config key, missing
+     usage block: raise, never fall back.
   5. A MEASUREMENT CARRIES ITS OWN METADATA.  Retrieval scores carry `depth`; cost carries the
-     pricing `version` and `verified` flag. A number that cannot describe the conditions it was
-     produced under is not publishable.
-  6. PROVENANCE BEFORE SIDE EFFECTS.  manifest.json is written before any model loads, so a run
-     that dies at hour six is still attributable.
-  7. ONE SOURCE OF TRUTH.  Every value is read from configs/experiment.yaml at one place. A knob
-     in a dataclass and the same knob in the YAML is a knob that can disagree with itself.
+     pricing `version` and `verified` flag.
+  6. PROVENANCE BEFORE SIDE EFFECTS.  manifest.json is written before any model loads.
+  7. ONE SOURCE OF TRUTH.  Every value is read from configs/experiment.yaml at one place.
 
-`python -m src.contract` self-checks the rules against this repo's own source and reports any
-violation it finds in a file.
+`python -m src.contract` self-checks the rules against this repo's own source.
 """
 from __future__ import annotations
 
@@ -194,7 +186,7 @@ if __name__ == "__main__":
         tmp.unlink(missing_ok=True)
     assert scan_source("src") == [], "scanner must clean up after itself"
 
-    # Rule 1: measured latency passes; the MVP's sum-of-stages fails.
+    # Rule 1: observed latency passes; a sum of stages fails.
     class R:
         query_id, latency_ms, stage_latency_ms = "q", 0.0, {}
         prompt_tokens, completion_tokens, api_cost_usd, gpu_cost_usd = 0, 0, 0.0, 0.0

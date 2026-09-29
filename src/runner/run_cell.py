@@ -1,19 +1,16 @@
 """Run ONE cell of the grid: <model> x <pipeline> over n queries, end-to-end, on the GPU.
 
-Phase 2 plan A1. What changed from the MVP runner (mvp_runner.py, retired):
+Four decisions that are not obvious from the code:
 
-  * STAGE BATCHING IS DELETED. The MVP retrieved + CRAG'd all 50 queries in-process, freed the
-    retrieval models, THEN started vLLM — and reported latency_ms = sum(stage_latency_ms). That
-    is a sum of separately measured distributions, not an observed end-to-end number, and
-    latency is the thesis's "+1". Here the retrieval models stay co-resident with the vLLM
-    server (MPNet+MiniLM+flan-t5 ~1.5 GB + vLLM 8 GB < 16 GB T4) and one outer timer spans
-    retrieve -> rerank -> crag -> generate per query.
-  * The pipeline is a spec, not a code path (src/pipeline.py), which is what makes the
-    baseline/reranked/crag ablation expressible at all.
-  * Retrieval quality is measured (src/monitor/retrieval_metrics.py). The MVP measured none.
-  * Cost is real: api_cost_usd + gpu_cost_usd from configs/pricing.yaml. No more cost_usd=0.0.
+  * NO STAGE BATCHING. Retrieval and CRAG run per query inside the same timed chain, with the
+    retrieval models co-resident with the vLLM server (MPNet+MiniLM+flan-t5 ~1.5 GB + vLLM 8 GB
+    < 16 GB T4). Batching the stages and reporting sum(stage_latency_ms) yields a sum of
+    separately measured distributions, not an observed end-to-end number — and latency is the
+    whole point. One outer timer spans retrieve -> rerank -> crag -> generate per query.
+  * The pipeline is a spec, not a code path (src/pipeline.py).
+  * Cost is real: api_cost_usd + gpu_cost_usd from configs/pricing.yaml.
   * TTFT requires stream=True; a missing usage block RAISES rather than returning zeros.
-  * manifest.json is written BEFORE any model loads, so a run that dies at hour 6 is still
+  * manifest.json is written BEFORE any model loads, so a run that dies partway is still
     attributable (on Colab, disconnection is a matter of when, not if).
 
 Run (from the repo root, needs a GPU + vLLM):
@@ -97,7 +94,7 @@ def write_manifest(out_dir: Path, cfg: dict, pipeline: str, model_key: str,
             "torch": torch.__version__,
         },
         "deviations": [
-            "judge == generator (Phase A); separate judge endpoint lands in Phase B (B1)",
+            "judge == generator: judge.serve_id is null, so both roles resolve to one endpoint",
             "CRAG evaluator is the flan-t5-base proxy, not CRAG's trained 0.77B t5-large",
             f"sparse arm = {cfg['retrieval']['sparse']}",
             f"api prices unverified: pricing version {pricing['version']}, "
@@ -108,10 +105,11 @@ def write_manifest(out_dir: Path, cfg: dict, pipeline: str, model_key: str,
 
 
 def ragas_scores(samples: list[dict], judge, embeddings) -> dict[str, float]:
-    """Reference-free Faithfulness + AnswerRelevancy from the ragas 0.4.3 collections API
-    (Es et al. §2). `ragas.metrics` singletons are importable but emit DeprecationWarning and
-    route to the SAME validation that rejects local judges (metrics/collections/base.py:113) —
-    the collections import is the honest path.
+    """Reference-free Faithfulness + AnswerRelevancy via the ragas collections API.
+
+    The `ragas.metrics` singletons are importable but emit DeprecationWarning and route to the
+    same validation that rejects local judges (metrics/collections/base.py:113) — the collections
+    import is the honest path.
 
     Returns None-valued metrics as absent rather than zero, so a scoring failure is visible
     instead of being reported as a 0.0 faithfulness.
@@ -145,7 +143,7 @@ def ragas_scores(samples: list[dict], judge, embeddings) -> dict[str, float]:
 
 def phase_a_gates(pipeline, results: list[dict], summary: dict, scorecard: dict,
                   n: int, records=(), runs=()) -> dict[str, bool]:
-    """The Phase A acceptance checks (Notes/Phase 2 Plan.md §3), as a pure function.
+    """The acceptance checks a finished cell must pass, as a pure function.
 
     Pure so it can be tested without a GPU: a gate that only ever runs after a 30-minute Colab
     pass is a gate that gets trusted. `python -m src.runner.run_cell` self-checks this below.
@@ -159,8 +157,9 @@ def phase_a_gates(pipeline, results: list[dict], summary: dict, scorecard: dict,
     return {
         "all answers non-empty": all(r["answer"].strip() for r in results),
         "queries.jsonl complete": summary["n_queries"] == n,
-        # The A1 regression guard: an unobserved latency (a sum of stage distributions) is the
-        # exact failure this benchmark exists to avoid, so it must fail the run, not annotate it.
+        # Regression guard for contract rule 1: an unobserved latency (a sum of stage
+        # distributions) is the exact failure this benchmark exists to avoid, so it must fail the
+        # run, not annotate it.
         "observed latency dominates stages": all(
             r["latency_ms"] >= sum(r["stage_latency_ms"].values()) - 1e-6 for r in results),
         "P95 latency present": (summary["latency_ms"]["p95"] or 0) > 0,
@@ -276,7 +275,7 @@ def main() -> int:
             res = answer_query(pipeline, hy, crag, generate, row)
             # Label BEFORE logging so queries.jsonl carries it — the per-query record is the
             # committed raw data, and a label that only exists in the scorecard aggregate cannot
-            # be re-derived from it once Phase B's LLM judge replaces these labels.
+            # be re-derived from it once a model judge replaces these labels.
             res.extra["action"] = res.action
             res.extra["label"] = label(res.answer, row.get("answer", ""))
             # Rule 3 is enforced HERE, not in score_run: only the caller knows whether the gold
@@ -321,16 +320,14 @@ def main() -> int:
         "wall_clock_s": wall_s,
         "retrieval": aggregate(runs),
         "adjusted_accuracy_pct": adjusted_accuracy(labels),
-        "adjusted_accuracy_formula":
-            "Correct / (Correct + Hallucinated) * 100  [Mala et al. 2026, §E]",
+        "adjusted_accuracy_formula": "Correct / (Correct + Hallucinated) * 100",
         "raw_accuracy_pct": 100.0 * labels.count("Correct") / len(labels),
         "hallucination_rate_pct": 100.0 * labels.count("Hallucinated") / len(labels),
         "rejection_rate_pct": 100.0 * labels.count("NoAnswer") / len(labels),
         "unlabelled_pct": 100.0 * labels.count(UNKNOWN) / len(labels),
-        "label_note": "deterministic substring labels; the LLM judge and the hand-labelled "
-                      "agreement sample land in Phase B (B1/B2). 'Unknown' = no reference answer "
-                      "for that row; excluded from adjusted accuracy and reported as "
-                      "unlabelled_pct rather than counted as hallucination (contract rule 3)",
+        "label_note": "deterministic substring labels. 'Unknown' = no reference answer for that "
+                      "row; excluded from adjusted accuracy and reported as unlabelled_pct "
+                      "rather than counted as hallucination (contract rule 3)",
         "crag_action_distribution": dict(
             collections.Counter(r["action"] for r in results if r["action"])),
         "ragas": ragas,
@@ -352,7 +349,7 @@ def main() -> int:
     print(f"cost: api {_usd(summary['api_cost_usd'])} | gpu {_usd(summary['gpu_cost_usd'])} "
           f"(pricing {pricing['version']}, verified={pricing['verified']})")
 
-    # ---- Phase A gates (Notes/Phase 2 Plan.md §3) ----
+    # ---- gates ----
     checks = phase_a_gates(pipeline, results, summary, scorecard, n, logger.records, runs)
     for name, ok in checks.items():
         print(("PASS  " if ok else "FAIL  ") + name)
@@ -427,7 +424,7 @@ if __name__ == "__main__":
 
         for name, break_it in (
             ("observed latency dominates stages",
-             lambda r: [r.update(latency_ms=1.0)]),                      # the MVP's fake latency
+             lambda r: [r.update(latency_ms=1.0)]),                      # derived, not observed
             ("TTFT measured on every query", lambda r: [r.update(ttft_ms=None)]),
             ("all answers non-empty", lambda r: [r.update(answer="  ")]),
             ("retrieval depth recorded", lambda r: [r.update(retrieved_ids=[])]),

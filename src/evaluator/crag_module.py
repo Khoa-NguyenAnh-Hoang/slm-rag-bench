@@ -1,13 +1,16 @@
 """CRAG-style retrieval evaluator + knowledge-strip refinement.
-Justification: Yan et al. (2024) §2A-2C — per-document confidence in [-1,1], 3-action
-triggers (Correct/Incorrect/Ambiguous) via upper/lower thresholds (reference impl:
-CRAG-main/scripts/CRAG_Inference.py:174-196, routing 252-258), decompose-then-recompose
-strips of 3 sentences, keep top-5 (CRAG-main/scripts/internal_knowledge_preparation.py:29,
-utils.py:274 select_relevants top_n=5). MVP substitution (approved): google/flan-t5-base
-(248M) prompt-based scorer replaces the trained 0.77B t5-large regressor — the checkpoint
-is not in-repo and flan-t5 is Colab/T4-safe. No live web search on Incorrect
-(Action Plan.md Risk 3, $0 constraint): caller receives empty strips and must fall back
-to an abstention/parametric prompt.
+
+Per-document confidence in [-1,1], three actions (Correct/Incorrect/Ambiguous) chosen by
+upper/lower thresholds, then decompose-then-recompose strips of 3 sentences keeping the top 5.
+
+The scorer is `google/flan-t5-base` (248M), a prompt-based yes/no decision standing in for a
+trained confidence regressor: it is small enough to stay resident on a T4 alongside vLLM and the
+retrieval models. It is a proxy, not the real thing — a 248M prompt-based scorer scores highly
+on-topic passages almost always, so the Correct/Incorrect split is much less discriminative than
+the design assumes. Read the action distribution before trusting it.
+
+No live web search on Incorrect (the $0 constraint): the caller receives empty strips and must
+fall back to an abstention/parametric prompt.
 """
 from __future__ import annotations
 
@@ -55,7 +58,7 @@ class CRAGEvaluator:
 
     @staticmethod
     def decompose(passage: str, strip_len: int = 3) -> list[str]:
-        """Split into strips of `strip_len` sentences (concatenate mode, CRAG-main:29)."""
+        """Split into strips of `strip_len` sentences."""
         sents = [s for s in re.split(r"(?<=[.!?])\s+", passage) if s.strip()]
         return [" ".join(sents[i:i + strip_len]) for i in range(0, len(sents), strip_len)] or [passage]
 
@@ -70,7 +73,7 @@ class CRAGEvaluator:
             action = "Incorrect"
         else:
             action = "Ambiguous"
-        # Refinement runs for Correct|Ambiguous (Yan §2C). Incorrect => no internal knowledge.
+        # Refinement runs for Correct|Ambiguous. Incorrect => no internal knowledge.
         strips: list[tuple[str, float]] = []
         if action in ("Correct", "Ambiguous"):
             for d in docs:
@@ -89,9 +92,9 @@ class CRAGEvaluator:
 if __name__ == "__main__":
     ev = CRAGEvaluator(device="cpu")
     q = "Who painted the Mona Lisa?"
-    # Plain strings, NOT one-element lists. The MVP wrapped them in brackets AND then wrapped
-    # them again in `evaluate(q, [good])`, so `docs` was [[str]] and decompose() got a list —
-    # this smoke test raised TypeError on its first honest run, i.e. it had never executed.
+    # Plain strings, NOT one-element lists. Wrapping them in brackets and then passing
+    # `[good]` again makes `docs` [[str]] and decompose() gets a list — this smoke test raised
+    # TypeError on its first honest run, i.e. it had never executed.
     good = ("The Mona Lisa was painted by Leonardo da Vinci in the early 1500s. "
             "It hangs in the Louvre. Millions visit it annually.")
     junk = ("Bananas are yellow and rich in potassium. Monkeys like fruit. "

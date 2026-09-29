@@ -2,26 +2,23 @@
 
 The runner does NOT load model weights in-process. This module starts vLLM as a managed
 subprocess, talks to it over HTTP, and stops it reliably — so peak VRAM is the max over roles
-rather than the sum, and the retrieval models (MPNet, MiniLM, flan-t5) can stay CO-RESIDENT
-with the server through the generation pass (Phase 2 plan A1).
+rather than the sum, and the retrieval models (MPNet, MiniLM, flan-t5) can stay CO-RESIDENT with
+the server through the generation pass.
 
-Why a subprocess rather than `python -m vllm...` inline: the runner must be able to free the
-retrieval models, and must reliably kill the server even when a pass fails. A managed Popen
-with a health-check loop does both. `--enforce-eager` is deliberate: no CUDA-graph capture on a
-16 GB T4 halves the risk of first-token OOM, at the cost of some throughput — this benchmark is
-latency-measured, not throughput-measured.
+Why a subprocess rather than an inline call: the runner must reliably kill the server even when a
+pass fails. A managed Popen with a health-check loop does that. `--enforce-eager` is deliberate:
+no CUDA-graph capture on a 16 GB T4 halves the risk of first-token OOM, at the cost of some
+throughput — this benchmark is latency-measured, not throughput-measured.
 
-ROLE-PARAMETERISED (Phase 2 plan §2.2): the same class serves `generator` and (from Phase B)
-`judge`, which is how B1 puts a different model on the judging endpoint without a second code
-path.
+ROLE-PARAMETERISED: the same class serves `generator` and `judge`, so a different model can sit
+on the judging endpoint without a second code path.
 
-STREAMING IS REQUIRED FOR TTFT (Phase 2 plan A6 / pre-flight finding 5): the MVP's
-non-streaming `chat.completions.create` has no first-chunk timestamp, so TTFT cannot be measured
-from it at all. `stream=True` plus `stream_options={"include_usage": True}` gives both the
-first-token time AND the server-side usage block. Token counts come from that block, never from
-a local tokenizer — the runner holds no weights, and server-side counting is what vLLM billed.
-If the usage block is missing, `serve_generate` raises rather than returning zeros: a silent 0
-would flow straight into the cost axis and the tokens/s figure.
+STREAMING IS REQUIRED FOR TTFT: a non-streaming completion has no first-chunk timestamp, so TTFT
+cannot be measured from it at all. `stream=True` plus `stream_options={"include_usage": True}`
+gives both the first-token time AND the server-side usage block. Token counts come from that
+block, never from a local tokenizer — the runner holds no weights, and server-side counting is
+what vLLM bills. If the usage block is missing, `serve_generate` raises rather than returning
+zeros: a silent 0 would flow straight into the cost axis and the tokens/s figure.
 """
 from __future__ import annotations
 
@@ -131,15 +128,15 @@ def serving(server: VLLMServer):
 def server_from_config(cfg: dict, role: str = "generator") -> VLLMServer:
     """Build a VLLMServer for a role.
 
-    Phase A: the judge has no `judge.serve_id`, so BOTH roles resolve to the generator's weights
-    — the documented self-judge limitation, and the reason the manifest carries it as a
-    deviation. Phase B (B1) fills `judge.serve_id` and the two roles diverge; the two servers
-    then need different ports, which is why the port is per-role rather than global.
+    With `judge.serve_id` null (the default), both roles resolve to the generator's weights — the
+    self-judge limitation, carried in the manifest as a deviation. Setting `judge.serve_id` makes
+    the two roles diverge; the two servers then need different ports, which is why the port is
+    per-role rather than global.
     """
     assert role in ("generator", "judge"), role
     gen = cfg["models"][cfg["_model_key"]]
     judge_id = cfg["judge"].get("serve_id")
-    # A role's model is either its own serve_id or, in Phase A, the generator's.
+    # A role's model is either its own serve_id or, by default, the generator's.
     model = gen["serve_id"] if role == "generator" else (judge_id or gen["serve_id"])
     ep = cfg["serve"]
     return VLLMServer(
@@ -149,7 +146,7 @@ def server_from_config(cfg: dict, role: str = "generator") -> VLLMServer:
         gpu_memory_utilization=float(ep.get("gpu_memory_utilization", 0.5)),
         max_model_len=int(ep.get("max_model_len", 4096)),
         # The judge needs no --quantization override of its own; it inherits the generator's
-        # until B1 declares otherwise, and experiment.yaml can override it per role.
+        # until experiment.yaml declares otherwise.
         quantization=ep.get(f"{role}_quantization", gen.get("quantization")),
         extra_args=list(ep.get("extra_args", [])),
     )

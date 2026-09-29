@@ -1,20 +1,16 @@
-"""Per-query cost-latency-token logger. The thesis's "+1" (Blueprint.md:34): no such module
-existed anywhere in ./Code (Pillar 4 audit: Missing).
+"""Per-query cost, latency and token logger.
 
-Justification: EvaRAG (Elkiran & Rasheed, 2025) §2.3 — mean/P95 latency (ms), prompt/completion
-token counts and USD cost per query; Action Plan.md Task 4. Per-stage latency is required
-because Mala's runtime table (Mala.md:77-87) is per-component, and because the reranker's own
-cost — the quantity the Action Plan's contradiction map turns on — is only visible if rerank is
-its own stage.
+Records mean/P95 latency, per-stage latency, token counts, and TWO labelled cost numbers:
+  api_cost_usd — token counts × a hosted-API rate card (configs/pricing.yaml). A proxy that
+                 makes cost comparable to commercially served models.
+  gpu_cost_usd — measured wall-clock × a stated $/GPU-hour. What the run actually cost.
 
-TWO cost numbers, both labelled (Phase 2 Plan locked decision 2):
-  api_cost_usd — token counts × a per-model hosted-API rate card (configs/pricing.yaml). This
-                 is what makes "faithfulness per dollar" comparable to API-priced baselines.
-  gpu_cost_usd — measured wall-clock × a stated $/GPU-hour. This is what the experiment
-                 actually cost, and it is the honest number for local hardware.
-Neither defaults to 0.0. A benchmark reporting zero cost is worse than one reporting nothing,
-because it looks like a measurement. Both are None when no price card is supplied, and
-summary() reports how many queries carry each.
+Neither defaults to 0.0: a benchmark reporting zero cost looks like a measurement, and is worse
+than one reporting nothing. Both are None when no price card is supplied, and summary() reports
+how many queries carry each.
+
+Per-stage latency exists because the reranker's own cost is only visible when rerank is timed as
+its own stage — fused into retrieval it disappears entirely.
 """
 from __future__ import annotations
 
@@ -109,8 +105,8 @@ class MetricsLogger:
                   for s in sorted({k for r in self.records for k in r.stage_latency_ms})}
         return {
             "n_queries": len(self.records),
-            "latency_ms": self._stats(r.latency_ms for r in self.records),   # mean + P95 — EvaRAG
-            "stage_latency_ms": stages,                                      # per-component — Mala §3
+            "latency_ms": self._stats(r.latency_ms for r in self.records),   # mean + P95
+            "stage_latency_ms": stages,                                      # broken down per stage
             "ttft_ms": self._stats(r.ttft_ms for r in self.records),
             "tok_per_s": self._stats(r.tok_per_s for r in self.records),
             "prompt_tokens": int(sum(r.prompt_tokens for r in self.records)),
@@ -173,7 +169,7 @@ if __name__ == "__main__":
     assert s["n_queries"] == 20 and abs(s["latency_ms"]["mean"] - 195.0) < 1e-6, s
     assert abs(s["latency_ms"]["p95"] - 280.5) < 1e-6, s["latency_ms"]
     assert s["prompt_tokens"] == 4000
-    # No pricing card => cost is None, never a fabricated 0.0 (Phase 2 plan A6).
+    # No pricing card => cost is None, never a fabricated 0.0 (contract rule 2).
     assert s["api_cost_usd"] is None and s["n_with_api_cost"] == 0, s
 
     priced = MetricsLogger(Path(tempfile.gettempdir()) / "priced.jsonl",

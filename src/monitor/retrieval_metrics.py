@@ -1,25 +1,14 @@
 """Retrieval quality metrics: MAP@k, NDCG@k, Recall@k, MRR, Coverage.
 
-Justification: EvaRAG (Elkiran & Rasheed, 2025) §2.1 logs Recall@k, MRR, nDCG@k and Coverage
-as its retrieval layer; Action Plan Task 2's success criterion is "MAP@3 and NDCG@10 match
-Mala et al. baseline trends". Neither existed in the MVP — it measured no retrieval quality at
-all, so the reranking ablation had nothing to separate on.
-
-AP@k and NDCG@k are ported from the reference implementation
-(Beyond_Retrieval-main/02_hybrid_pipeline/hybrid_pipeline.ipynb:327-370, `average_precision_at_k_
-from_binary` / `dcg_at_k_from_binary` / `ndcg_at_k_from_binary`) so the numbers are computed the
-same way the paper computes them.
-
-DEPTH IS PART OF THE METRIC — read this before comparing to Mala's 0.2819.
-The reference `num_relevant = sum(rel)` counts relevant documents found within the retrieved
-list, NOT in the whole corpus. So the AP denominator grows with retrieval depth: retrieve 10
-deep and find 1 gold and you score AP@3 = 1.0; retrieve 200 deep, find 4 gold, and the same hit
+DEPTH IS PART OF THE METRIC — read this before quoting any MAP@k.
+The usual `num_relevant = sum(rel)` counts relevant documents found within the retrieved list,
+NOT in the whole corpus, so the AP denominator grows with retrieval depth: retrieve 10 deep and
+find 1 gold and you score AP@3 = 1.0; retrieve 200 deep, find 4 gold, and that same first hit
 scores 0.25. Every call therefore takes an explicit `depth`, and `score_run` records it in its
-output, because a MAP@3 quoted without its depth is not comparable to anything.
+output, because a MAP@k quoted without its depth is comparable to nothing.
 
-Mala's exact corpus is not vendored (their notebook reads `hotpotqa_fulldataset_cleaned.csv`,
-absent from this repo; the Phase 1 audit flagged it `[UNCERTAIN]`). So 0.2819 is a reported
-COMPARISON, not a pass/fail gate — see Notes/Phase 2 Plan.md A5.
+Published MAP@k figures are comparisons, not gates: they come from corpora and splits this repo
+does not vendor, so matching one exactly is neither possible nor meaningful here.
 """
 from __future__ import annotations
 

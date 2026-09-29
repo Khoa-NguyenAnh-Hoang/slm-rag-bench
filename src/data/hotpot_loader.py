@@ -1,13 +1,8 @@
 """HotpotQA distractor-set sampling + corpus builder.
 
-Justification: Mala et al. (2026) §D — HotpotQA distractor subset, 2 supporting + 8 distractor
-paragraphs per question; 90,447-instance train split indexed by the paper (verified: that is
-Mala's "90,000"), 1,200-row eval sample with seed=42 (Beyond_Retrieval-main/README.md:36).
-
-Data route (probed 2026-09-29, see Notes/Phase 2 Plan.md pre-flight finding 1): the raw JSON
-hosts are DEAD — http://curtis.ml.cmu.edu connection-fails, https:// times out, and
-raw.githubusercontent.com/hotpotqa/hotpot/master/... returns 404. `load_dataset` off the HF Hub
-is the only live route, and it is also what the Colab notebook already used.
+Loads off the HF Hub via `load_dataset`. The upstream raw-JSON hosts are unreachable (connection
+fails over http, times out over https, and the GitHub raw paths 404), so the Hub is the only
+live route.
 
 `supporting_facts` shape differs by source and matters: raw JSON ships it as a list of
 [title, sent_id] pairs, HF parquet ships {'title': [...], 'sent_id': [...]}. We read the HF
@@ -71,8 +66,8 @@ def sample_hotpot(
     """Return n instances: {question_id, question, answer, gold_titles, supporting[], distractors[]}.
 
     `split` is the EVAL split. The retrieval CORPUS is built separately by build_corpus() and is
-    deliberately much larger — Phase 2 plan §2.4 / A4: a corpus drawn from the same n questions
-    makes retrieval degenerate (2 of 10 candidates gold by construction).
+    deliberately much larger: a corpus drawn from the same n questions makes retrieval degenerate
+    (2 of 10 candidates gold by construction).
     """
     raw = load_split(split, cache_dir)
     assert len(raw) >= n, f"split {split} has {len(raw)} rows, need {n}"
@@ -102,7 +97,7 @@ def build_corpus(
     questions, and collapsing by text alone would hand the same doc_id to two different titles —
     which silently corrupts the title→doc_id map that gold matching is built on.
 
-    Mala's 90k train split yields ~500-900k paragraphs — the index build is tens of minutes
+    The 90k-row train split yields ~500-900k paragraphs — the index build is tens of minutes
     and is cached by the retriever, not here.
 
     max_paras caps the corpus for local iteration; it MUST be recorded in the manifest, because
@@ -132,7 +127,7 @@ def dataset_manifest() -> dict:
         "config": "distractor",
         "splits": SPLITS,
         "source": "huggingface.co/datasets/hotpotqa/hotpot_qa",
-        "note": "raw JSON hosts curtis.ml.cmu.edu / github hotpotqa are dead (probed 2026-09-29)",
+        "note": "upstream raw-JSON hosts are unreachable; the HF Hub is the only live route",
     }
 
 
@@ -146,9 +141,9 @@ if __name__ == "__main__":
         "gold_titles/supporting disagree — supporting_facts shape regression"
     # NOT 10 for every row. Measured on distractor/validation: 60 of 7,405 rows (0.8%) carry
     # fewer than 10 context paragraphs (counts of 2-9 appear), while ALL 7,405 still have exactly
-    # 2 gold titles with gold ⊆ context. So the "2 supporting + 8 distractors" shape in Mala's §D
-    # is the norm, not an invariant. Those rows are EASIER (fewer distractors to reject), so
-    # distractor count per query is a reported manifest field, not a hidden assumption.
+    # 2 gold titles with gold ⊆ context. So "2 supporting + 8 distractors" is the norm, not an
+    # invariant. Those rows are EASIER (fewer distractors to reject), so distractor count per
+    # query is a reported manifest field, not a hidden assumption.
     ctx_counts = [len(r["supporting"]) + len(r["distractors"]) for r in rows]
     truncated = sum(c < 10 for c in ctx_counts)
     if truncated:

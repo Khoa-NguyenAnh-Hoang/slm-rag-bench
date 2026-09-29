@@ -22,7 +22,7 @@ was dropped or invented, whatever the boundaries turned out to be. Blank lines *
 commented cell are `# ` (hash + space); the separator between cells is a real blank line.
 
 Usage:
-    python colab_export_to_ipynb.py mvp_colab_smoke_test.py [-o out.ipynb]
+    python colab_export_to_ipynb.py script.py [-o out.ipynb]
 """
 from __future__ import annotations
 

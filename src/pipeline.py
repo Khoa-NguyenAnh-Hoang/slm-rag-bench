@@ -1,22 +1,15 @@
-"""The pipeline spec and the timed chain — Phase 2 plan §2.2.
+"""The pipeline spec and the timed chain.
 
-Why this file exists: the MVP's `mvp_runner.main()` hardcoded exactly one chain
-(hybrid + rerank + CRAG -> generate), which made the Action Plan's central ablation
-(baseline vs reranked vs CRAG) inexpressible. Worse, it reported
-`latency_ms = sum(stage_latency_ms)` from a stage-batched run — a sum of separately measured
-distributions, not an observed end-to-end number. Latency is the thesis's "+1", so that number
-has to be real.
+A pipeline is a spec, not a code path: `baseline`, `reranked` and `crag` are three `Pipeline`
+values sharing one `answer_query()`. Adding an ablation means adding a value, not a branch.
 
-Three properties are load-bearing:
+One outer timer spans the whole chain and each stage keeps its own, so `latency_ms` is observed
+rather than derived. `latency_ms >= sum(stage_latency_ms)` then holds by construction, and any
+future re-batching surfaces as a gate failure instead of a quietly wrong number.
 
-1. **A pipeline is a spec, not a code path.** Three `Pipeline` values, one `answer_query`.
-2. **One outer timer, four stage timers.** `latency_ms` is measured around the whole chain, so
-   the gate `latency_ms >= sum(stages)` holds by construction and any future re-batching shows up
-   as a test failure rather than as a quietly wrong number.
-3. **`generate` is injected.** The chain never imports vLLM, ragas or torch, so the whole
-   pipeline is testable on a laptop with fakes (see the self-check below). That is what keeps
-   the matrix runner honest: if a stage regresses, a CPU assert catches it before a 28-GPU-hour
-   campaign does.
+`generate` is injected, so the chain never imports vLLM, ragas or torch and the whole pipeline is
+testable on a laptop with fakes. That is what keeps the matrix honest: a stage regression is
+caught by a CPU assert instead of after a multi-hour run.
 """
 from __future__ import annotations
 
@@ -76,7 +69,7 @@ class QueryResult:
 
 
 def build_prompt(question: str, contexts: list[str]) -> str:
-    """CoT + abstention-inducing prompt, ported from Beyond_Retrieval generation_utils.py:120."""
+    """Chain-of-thought prompt with an explicit abstention branch when context is insufficient."""
     ctx = "\n".join(f"[context {i}] - {' '.join(c.split())[:2000]}"
                     for i, c in enumerate(contexts, 1)) or "[no relevant context retrieved]"
     return (
@@ -117,9 +110,9 @@ def answer_query(
         with stage_timer(st, "crag"):
             cr = crag.evaluate(row["question"], contexts)
         action = cr["action"]
-        # Yan et al. 2C: refinement only for Correct/Ambiguous. Incorrect => no internal
-        # knowledge => empty context => the abstention branch of build_prompt (Action Plan Risk 3,
-        # $0 constraint: no live web search).
+        # Refinement only for Correct/Ambiguous. Incorrect => no internal knowledge => empty
+        # context => the abstention branch of build_prompt. No live web search to rescue it ($0
+        # constraint), so Incorrect can only be answered from parametric memory or not at all.
         contexts = cr["strips"] if action in ("Correct", "Ambiguous") else []
 
     with stage_timer(st, "generate"):
@@ -135,14 +128,13 @@ def answer_query(
 
 
 def label(answer: str, gold: str) -> str:
-    """Deterministic Correct / Hallucinated / NoAnswer / Unknown labels (Mala et al. §E
-    three-way protocol, plus a fourth state this repo needs).
+    """Deterministic Correct / Hallucinated / NoAnswer / Unknown labels.
 
-    Deterministic string matching, NOT the paper's claude-sonnet-4.5 judge — that is prohibited
-    by the $0 constraint and is replaced by an LLM judge in Phase B (src/monitor/labels.py).
-    Kept because the hand-labelled agreement sample needs a reproducible reference, and because
-    yes/no HotpotQA answers are substring-matched exactly (a `gold in answer` test alone is
-    meaningless for "yes"/"no").
+    Deterministic string matching, not a model judge — no third-party judge is reachable under
+    the $0 constraint, and an LLM judge replaces this in a later phase (src/monitor/labels.py).
+    Kept because the hand-labelled agreement sample needs a reproducible reference to score
+    against, and because yes/no HotpotQA answers are substring-matched exactly (a `gold in
+    answer` test alone is meaningless for "yes"/"no").
 
     UNKNOWN is a fourth state, and it is load-bearing (contract rule 3). Without it an empty
     `gold` fell through to `Hallucinated` — charging the model with hallucinating because *we*
@@ -168,7 +160,7 @@ def label(answer: str, gold: str) -> str:
 
 
 def adjusted_accuracy(labels: list[str]) -> float | float:
-    """Mala et al. §E: Correct / (Correct + Hallucinated) × 100.
+    """Correct / (Correct + Hallucinated) × 100 — abstentions excluded from both sides.
 
     Returns None when nothing was attempted — a model that abstains on everything has no
     adjusted accuracy, and that is a real outcome, not 0%. `Unknown` labels (no reference

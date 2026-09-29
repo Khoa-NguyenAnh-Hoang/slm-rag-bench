@@ -1,1 +1,1 @@
-"""Runner: end-to-end MVP orchestration."""
+"""Runner: end-to-end orchestration of one grid cell."""

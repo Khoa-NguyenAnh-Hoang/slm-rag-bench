@@ -1,24 +1,16 @@
-"""HybridLI (0.7 sparse BM25 + 0.3 dense MPNet over FAISS), then MiniLM cross-encoder rerank
-as a SEPARATE stage.
+"""HybridLI retrieval (0.7 sparse BM25 + 0.3 dense MPNet over FAISS), then MiniLM
+cross-encoder rerank as a SEPARATE stage.
 
-Justification: Mala et al. (2026) §C — score linear interpolation 0.7 sparse / 0.3 dense;
-ported from Beyond_Retrieval-main/02_hybrid_pipeline/hybrid_pipeline.ipynb (ALPHA=0.3 on the
-dense arm, line 4006; BETA=0.85 final blend line 4370) and 01_retrieval/hotpotqa_retrieval.ipynb
-(FAISS IndexFlatIP + L2-normalized MPNet line 974). Empirical Evaluation justifies MiniLM as the
-low-latency reranker and fixing ONE index type (eta^2 < 0.01).
+`retrieve()` and `rerank()` are split deliberately. Fused into one call, the reranker's own
+latency is invisible — which is exactly the quantity the ablation turns on — and the
+baseline/reranked/crag pipelines become inexpressible.
 
-Two structural changes from the Phase 1 MVP (Notes/Phase 2 Plan.md A2, A3):
-
-1. `retrieve()` and `rerank()` are split. The MVP fused sparse+dense+cross-encoder in one call,
-   so the reranker's own latency was invisible — which is precisely the quantity the Action
-   Plan's contradiction map turns on. Splitting them is also what makes the baseline/reranked/
-   crag ablation expressible at all.
-2. The sparse arm is a config switch, default pyserini. Measured cost of the alternative:
-   rank_bm25 is ~117 ms/query at 50k docs and extrapolates to ~2.1 s at the ~904k train-90k
-   corpus, versus pyserini's 6.7 ms on that same index (Mala §3). A 2.1 s Python loop would
-   dominate a 3-6 s end-to-end generation, making the thesis's latency axis an artefact of the
-   retriever. pyserini needs JDK 17+ (Colab: apt-get install -y openjdk-17-jdk-headless);
-   rank_bm25 is the no-JDK fallback for local iteration.
+The sparse arm is a config switch (`retrieval.sparse`), default pyserini. Measured cost of the
+alternative on this corpus: rank_bm25 is ~117 ms/query at 50k docs and extrapolates to ~2.1 s at
+the ~904k-doc train split, versus pyserini's 6.7 ms on the same index. A 2.1 s Python loop would
+dominate a 3-6 s end-to-end generation and turn the latency axis into an artefact of the sparse
+implementation. pyserini needs JDK 17+ (`apt-get install -y openjdk-17-jdk-headless`); rank_bm25
+is the no-JDK fallback for local iteration.
 """
 from __future__ import annotations
 
@@ -33,7 +25,7 @@ from typing import Sequence
 
 import numpy as np
 
-CAND_K = 30          # fusion candidate depth before rerank (MVP used max(3*top_k, 20))
+CAND_K = 30          # fusion candidate depth before rerank
 DEFAULT_CACHE = "scratch/index"
 
 
@@ -124,8 +116,7 @@ class HybridLI:
         return self._build_lucene()
 
     def _build_lucene(self):
-        """pyserini Lucene index over the corpus (notebook pattern, hotpotqa_retrieval.ipynb:592).
-        Cached the same way as the dense arm."""
+        """pyserini Lucene index over the corpus. Cached the same way as the dense arm."""
         from pyserini.index.lucene import CollectionReader  # probe install early, fail loudly
         del CollectionReader
 
@@ -170,8 +161,7 @@ class HybridLI:
         """Stage 1 — sparse+dense fusion, NO cross-encoder. Returns up to `k` candidates
         (default cand_k) ordered by fused score, each with `fused_score` and no `ce_score`.
 
-        This is the MVP's retrieve() minus the reranking tail. Rerank is now a separate call so
-        its latency is its own stage (Phase 2 plan A2).
+        Rerank is a separate call so its latency is its own stage (contract rule 1).
         """
         k = k or self.cand_k
         t0 = time.perf_counter()
@@ -187,7 +177,7 @@ class HybridLI:
             return []
         sp_arr = _minmax(np.array([sp.get(i, 0.0) for i in ids]))
         dn_arr = _minmax(np.array([dn.get(i, 0.0) for i in ids]))
-        fused = self.w_sparse * sp_arr + self.w_dense * dn_arr          # Mala: 0.7 / 0.3
+        fused = self.w_sparse * sp_arr + self.w_dense * dn_arr
         order = np.argsort(-fused)[:k]
         fused = _minmax(fused[order])
         return [{"doc_id": ids[j], "text": self.corpus[ids[j]],
@@ -198,16 +188,16 @@ class HybridLI:
     def rerank(self, query: str, docs: list[dict], k: int = 10) -> list[dict]:
         """Stage 2 — MiniLM cross-encoder over `docs`, blended 0.85*CE + 0.15*fused, return top k.
 
-        Full text is passed: the CrossEncoder truncates to its own 512-TOKEN limit internally. A
-        character slice (the MVP's [:512]) fed the ranker ~120 tokens while the returned context
-        was the whole paragraph, so ce_score and the emitted text disagreed.
+        Full text is passed: the CrossEncoder truncates to its own 512-token limit internally. A
+        character slice fed the ranker ~120 tokens while the returned context was the whole
+        paragraph, so ce_score and the emitted text disagreed.
         """
         if not docs:
             return []
         pairs = [(query, d["text"]) for d in docs]
         ce = _minmax(np.asarray(self.reranker.predict(pairs), dtype=float))
         fused = _minmax(np.array([d["fused_score"] for d in docs], dtype=float))
-        final = self.beta * ce + (1.0 - self.beta) * fused              # Mala: beta=0.85
+        final = self.beta * ce + (1.0 - self.beta) * fused
         ranked = np.argsort(-final)[:k]
         out = []
         for j in ranked:

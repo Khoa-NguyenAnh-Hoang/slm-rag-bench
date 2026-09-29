@@ -7,7 +7,7 @@ Two gates, in this order, because they fail for different reasons and cost diffe
 
   1. STREAM/USAGE — one streaming completion must return a usage block and a positive TTFT.
      The token counts feed the ENTIRE cost axis, so a missing usage block is not cosmetic: the
-     probe raises rather than letting zeros flow into pricing (Phase 2 plan A6 / pre-flight 5).
+     probe raises rather than letting zeros flow into pricing.
   2. FAITHFULNESS — >= 4/5 non-NaN through the ragas collections API. One NaN is normal (the
      abstention branch has no statements to support).
 
