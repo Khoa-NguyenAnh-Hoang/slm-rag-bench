@@ -1,133 +1,171 @@
 # slm-rag-bench
 
-**Blueprint 2 — A Cost-Latency-Faithfulness Benchmark for Small-Model RAG** (GAP 5).
-Design + phase plan: `../Notes/Phase 2 Plan.md`.
+A reproducible cost–latency–faithfulness benchmark for small-model RAG.
 
-```
-HotpotQA distractor → HybridLI (BM25 ×0.7 + MPNet/FAISS ×0.3) → [MiniLM-L6 rerank ×0.85]
-→ [CRAG evaluator: Correct / Incorrect / Ambiguous + strip refinement]
-→ generator via vLLM (OpenAI chat, streaming) → MetricsLogger (JSONL)
-→ ragas 0.4.3 collections (Faithfulness + AnswerRelevancy + ContextRelevance) → scorecard
+The benchmark fixes retrieval and varies only the generator pipeline:
+
+```text
+HotpotQA distractor
+  -> bm25s sparse pool (depth 30)
+  -> MiniLM-L6 cross-encoder rerank (top 10)
+  -> optional CRAG evaluator: Correct / Incorrect / Ambiguous + context refinement
+  -> generator via vLLM / OpenAI-compatible chat endpoint
+  -> MetricsLogger (JSONL)
+  -> ragas-style faithfulness / answer relevancy / context relevancy
+  -> scorecard.json + HTML report
 ```
 
-The brackets are the ablation: `baseline` / `reranked` / `crag` are three `Pipeline` specs over
-one timed `answer_query()` (`src/pipeline.py`), not three code paths. Grid = 3 models × 3
-pipelines = 9 cells (`configs/experiment.yaml`).
+## Why the retriever is fixed
+
+The question is **which small model should I pick**, not which retriever works best.
+Retrieval therefore stays identical across cells:
+
+- sparse candidate pool: `bm25s`
+- reranker: `sentence-transformers/ms-marco-MiniLM-L-6-v2`
+- no dense retrieval arm
+- no JDK/pyserini dependency
+
+The reranker is part of the fixed retriever, so it runs in every cell and is not an
+experimental axis. See `src/retrieval/NOTES.md` for the measurements behind that choice.
+
+## Model / pipeline matrix
+
+The experiment is defined in `configs/experiment.yaml`:
+
+- 3 small generator models
+- 2 pipelines: `baseline` and `crag`
+- 6 cells total: `(model, pipeline)`
+- one fixed judge server for faithfulness/relevance scoring
+- fixed corpus and split policy for every cell
+
+`baseline` sends retrieved context directly to the generator.
+`crag` first evaluates each retrieved context and can strip it on `Correct` /
+`Ambiguous`, or force the generator toward abstention on `Incorrect`.
 
 ## Setup
 
+Requires Python 3.11+ and `uv`.
+
 ```bash
-uv sync --extra sparse                     # + rank-bm25: no-JDK sparse arm, for local iteration
-uv sync --extra retrieval --extra serve    # Colab T4: pyserini + vLLM + instructor + ragas
+uv sync --extra serve
+export HF_TOKEN=...    # needed for gated models such as Llama
 ```
 
-- `pyserini` (retrieval) needs **JDK 17+**:
-  `apt-get install -y openjdk-17-jdk-headless`. It is the default sparse arm because it matches
-  the reference BM25 latency (~6.7 ms/query on the 90k index, Mala §3); `rank_bm25` measures
-  ~117 ms at 50k docs and would dominate end-to-end latency at ~904k. Set `retrieval.sparse:
-  rank_bm25` to measure the gap on your own hardware — it is a documented deviation either way.
-- `ragas>=0.4.3` from **PyPI** (collections API). `LangchainLLMWrapper` is a hard error there, not
-  legacy — the judge must be an instructor-style client over the vLLM endpoint
-  (`src/runner/serve.py`). Verified against the 0.4.3 wheel: `llm_factory(client=)`,
-  `metrics.collections.{Faithfulness,AnswerRelevancy,ContextRelevance}`,
-  `embeddings.HuggingFaceEmbeddings`. `serve.ragas_compat()` stubs the module ragas cannot
-  import without — see its docstring for why a `sys.modules` stub is required in-process.
+The `serve` extra installs vLLM, OpenAI client, instructor, and ragas.
 
-## Run order
+## Quick check
+
+CPU-only checks, no GPU or model downloads:
 
 ```bash
-uv run python -m tools.selfcheck          # ALL CPU checks, one command, no GPU/network needed
+uv run python -m tools.selfcheck
+```
 
-# or individually:
-uv run python -m src.contract              # the measurement rules + scan of src/ for violations
+Or run the checks individually:
+
+```bash
+uv run python -m src.contract
 uv run python -m src.monitor.retrieval_metrics
 uv run python -m src.monitor.metrics_logger
 uv run python -m src.pipeline
 uv run python -m src.runner.run_cell --self-check
-uv run python -m src.data.hotpot_loader   # downloads HotpotQA once, caches to scratch/
-uv run python -m src.retrieval.hybrid_reranker   # rank_bm25 arm, CPU
-uv run python -m src.evaluator.crag_module
-
-# GPU + vLLM. Probe FIRST: ~2 min to validate streaming/usage/TTFT and the judge,
-# versus discovering a broken judge after a 30-minute generation pass.
-uv run python -m src.runner.judge_probe --model-key qwen3-4b
-uv run python -m src.runner.run_cell --only crag-qwen3-4b --n 30      # pilot
-uv run python -m src.runner.run_cell --only crag-qwen3-4b            # full cell, n=300
+uv run python -m src.runner.matrix --self-check
 ```
 
-Add `--limit-corpus 20000` for a fast local run. A capped corpus inflates every retrieval
-metric, so it is recorded in the manifest — a capped run is **not** a publishable cell.
+## Running on a GPU box
 
-### On Colab (T4)
+Set the two renter-specific values first:
 
-There is no notebook generator yet (`tools/build_notebook.py` is Phase C, C4). Today the pilot
-runs directly in a Colab cell — no `%%writefile` indirection, so the notebook can never drift
-from `src/`:
+1. `serve.gpu_memory_utilization` in `configs/experiment.yaml`
+2. `gpu_usd_per_hour` in `configs/pricing.yaml`
+
+Then:
 
 ```bash
-!apt-get install -y -qq openjdk-17-jdk-headless          # pyserini needs JDK 17
-!pip install -q vllm "ragas>=0.4.3" instructor openai datasets rank-bm25 \
-                 sentence-transformers faiss-cpu pyyaml pandas
-!huggingface-cli login                                  # Llama 3.1 is gated
-!git clone https://github.com/<you>/slm-rag-bench.git && cd slm-rag-bench
-!python -m tools.selfcheck && python -m src.runner.judge_probe --model-key qwen3-4b
-!python -m src.runner.run_cell --only crag-qwen3-4b --n 30
+python -m tools.selfcheck
+python -m src.runner.judge_probe --model-key qwen2.5-1.5b
+python -m src.runner.run_cell --only crag-qwen2.5-1.5b --n 5 --limit-corpus 20000
+python -m src.runner.run_cell --only crag-qwen2.5-1.5b --n 30
+nohup python -m src.runner.matrix --skip-finished > matrix.log 2>&1 &
 ```
 
-**The index cache does not survive a Colab restart.** `scratch/index/<hash>/` costs 30–60 min to
-rebuild at full corpus scale and is gitignored, so attach a Drive mount or keep the session
-alive across cells of the same run.
+A capped corpus is useful for smoke testing but is **not** a publishable cell; the cap is
+recorded in the cell manifest.
 
-## Two things that will silently produce garbage
-
-- **`eval_split` must equal `corpus.split`** (`configs/experiment.yaml`). A dev query's gold
-  paragraphs are not in the train index, so scoring dev against train measures corpus coverage,
-  not retrieval quality. `run_cell` aborts before loading a model if any query's gold is absent.
-- **TTFT needs `stream=True`.** `serve_generate` raises if the server returns no usage block —
-  token counts, and therefore the entire cost axis, depend on it. Never paper over that with a 0.
-
-## The measurement contract
-
-`src/contract.py` states the seven rules this benchmark runs on, and enforces them. New code is
-written against it, not around it:
-
-1. latency is **measured** by one outer timer, never summed from stages
-2. an unavailable measurement is `None`, never `0.0`
-3. a missing reference answer is `Unknown`, never a fabricated Correct/Hallucinated
-4. unknown key / missing usage / missing config → **raise**, never fall back
-5. scores carry their `depth`; costs carry the pricing `version` + `verified` flag
-6. `manifest.json` is written before any model loads
-7. every value is read from `experiment.yaml` at exactly one place
-
-Four of these are gates in `run_cell.phase_a_gates()`, so a violation **fails the run** rather
-than shipping. `contract.scan_source()` greps `src/` for fabricated-zero patterns (comments and
-docstrings blanked first, so prose about the rules doesn't trip it) and runs as a self-check.
-
-Rule 3 exists because the alternative was real: an empty `gold` used to fall through to
-`Hallucinated`, charging the model for *our* missing reference answer — inflating the
-hallucination rate and depressing adjusted accuracy, both headline numbers, both in the
-direction that flatters the thesis.
+`matrix.py` runs each cell in its own subprocess, continues past failures, and writes a
+scorecard for successful cells. `--skip-finished` resumes the matrix without re-running
+completed cells.
 
 ## Outputs
 
+Each finished cell writes:
+
+```text
+results/<cell_id>/manifest.json      config, corpus size, pricing version, git rev, hardware
+results/<cell_id>/queries.jsonl      one runtime record per query
+results/<cell_id>/scorecard.json     aggregate summary + retrieval + adjusted accuracy + ragas
+results/scorecard_summary.md         cross-cell table + paired tests
+results/report.html                  static scorecard report
 ```
-results/<cell_id>/manifest.json    config + corpus size + pricing card + git rev + hardware
-                       /queries.jsonl  one record per query (COMMITTED — not gitignored)
-                       /scorecard.json  summary, retrieval metrics, adjusted accuracy, ragas
-scratch/index/<hash>/  BM25 + embedding caches. The 90,447-row corpus build is 30–60 min,
-                      built once and reused by all 9 cells. Do not delete between cells.
+
+`queries.jsonl` and `scorecard.json` are committed artifacts. Re-running a cell deletes its
+own `queries.jsonl` before starting, so partial output is not mixed with a fresh run.
+
+## Configuration
+
+`configs/experiment.yaml` controls:
+
+- generator models
+- baseline / crag pipelines
+- judge model and endpoint
+- corpus split and evaluation split
+- retrieval depth / top-k
+- server ports and memory utilisation
+
+`configs/pricing.yaml` controls:
+
+- API-equivalent cost rates
+- GPU hourly cost
+- provider and verification date for cost assumptions
+
+Costs are reported as two numbers per cell:
+
+- API-equivalent cost, for comparing against hosted-model economics
+- GPU-amortised cost, for measuring the actual hardware budget
+
+Neither is allowed to default to `0.0`.
+
+## Measurement contract
+
+The harness is opinionated about what counts as a valid measurement:
+
+1. latency is measured end-to-end, never summed from stages
+2. unavailable measurements are `None`, never `0.0`
+3. missing reference answers are `Unknown`, never fabricated labels
+4. unknown config keys raise instead of falling back silently
+5. scores carry their retrieval depth
+6. costs carry pricing version and verification metadata
+7. the manifest is written before model loading
+
+`src/contract.py` scans the source tree for patterns that violate these rules.
+
+## Repository layout
+
+```text
+configs/      experiment and pricing configs
+src/          pipeline, retrieval, evaluator, runner, monitor, data loading
+analysis/     scorecard and HTML report generation
+tools/        selfcheck, labels export/scoring, CRAG validity helper
+tests/        CPU smoke tests and synthetic fixtures
+results/      committed benchmark artifacts once cells finish
+Notes/        project plan and results notes
 ```
 
-Retrieval metrics are **depth-parameterised** (Mala's `num_relevant = sum(rel)` grows with
-retrieval depth), so every number carries its own `depth` and cannot be compared across runs at
-different depths. See the `src/monitor/retrieval_metrics.py` docstring before quoting a MAP.
+## Limitations
 
-## Current status
-
-Phase A complete: observed end-to-end latency with co-resident retrieval models, split
-retrieve/rerank stages, real corpus over the HF route (the raw-JSON hosts are dead), retrieval
-quality metrics, and two labelled cost numbers. Phase B (separate judge endpoint, LLM-judge
-labels + hand-annotated agreement sample, CRAG proxy validation) not started.
-
-**No cell has been run. There are no numbers yet** — the 30-query pilot on Colab T4 is the
-first thing that produces evidence, and it gates everything else.
+- No cell has produced benchmark numbers yet; the repository currently validates the harness.
+- CRAG evaluation is implemented as a local proxy evaluator. Its Incorrect path needs
+  external validity checking before it is interpreted as measured accuracy.
+- API-equivalent costs depend on published provider prices and can differ from real rented
+  GPU cost.
+- No dense retriever arm and no live web-search rescue are included.

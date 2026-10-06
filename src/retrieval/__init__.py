@@ -1,1 +1,1 @@
-"""Retrieval: HybridLI fusion + MiniLM cross-encoder reranking (Pillar 2)."""
+"""Retrieval: the fixed bm25s + MiniLM cross-encoder retriever. Measurements in NOTES.md."""

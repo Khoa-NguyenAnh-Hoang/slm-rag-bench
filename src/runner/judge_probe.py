@@ -72,7 +72,10 @@ def main() -> int:
             return 1
         print(f"stream OK: prompt={p_tok} completion={c_tok} ttft={ttft:.0f}ms {text!r}")
 
-        judge = build_judge(server, cfg["judge"]["mode"])
+    # The judge is the OTHER role, on its own endpoint. Sequential, like run_cell: the generator's
+    # server is stopped before the judge's starts, so one card carries one model at a time.
+    with serving(server_from_config(cfg, "judge")) as judge_server:
+        judge = build_judge(judge_server, cfg["judge"]["mode"])
         out = ragas_scores(PROBE_SAMPLES, judge, build_embeddings())
 
     print(json.dumps(out, indent=2))

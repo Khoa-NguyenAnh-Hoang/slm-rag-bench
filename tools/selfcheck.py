@@ -2,7 +2,7 @@
 
     uv run python -m tools.selfcheck
 
-Two Phase 1 self-checks turned out never to have executed — `crag_module`'s smoke test raised
+Two earlier self-checks turned out never to have executed — `crag_module`'s smoke test raised
 TypeError on its first honest run, and `retrieval_metrics` did not exist. So this exists to make
 "the checks pass" a single fact rather than a claim: one command, one exit code, every module
 that carries an `if __name__ == "__main__"` assert. Non-zero exit if any module fails.
@@ -21,11 +21,12 @@ CHECKS = [
     "src.monitor.metrics_logger",
     "src.pipeline",
     "src.runner.run_cell",            # needs --self-check; it is the only CLI with a flag
+    "src.runner.matrix",              # needs --self-check; same reason
     "src.data.hotpot_loader",         # downloads HotpotQA on first run
-    "src.retrieval.hybrid_reranker",  # downloads MPNet + MiniLM on first run
+    "src.retrieval.retriever",       # downloads MiniLM on first run
     "src.evaluator.crag_module",      # downloads flan-t5-base on first run
 ]
-FLAGS = {"src.runner.run_cell": ["--self-check"]}
+FLAGS = {"src.runner.run_cell": ["--self-check"], "src.runner.matrix": ["--self-check"]}
 
 
 def main() -> int:

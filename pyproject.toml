@@ -11,7 +11,9 @@ dependencies = [
     "torch>=2.2",
     "transformers>=4.40",
     "sentence-transformers>=3.0",
-    "faiss-cpu>=1.8",
+    # The fixed retriever's sparse arm. numpy/scipy only, no JVM — the pyserini path it
+    # replaced needed JDK 17 and could not even be measured on a machine without it.
+    "bm25s>=0.3",
     # HotpotQA ingestion. The raw JSON hosts (curtis.ml.cmu.edu, github.com/hotpotqa) are DEAD
     # as of 2026-09-29 — probed, see Notes/Phase 2 Plan.md pre-flight finding 1 — so the HF Hub
     # copy is the only live route. Imported lazily inside load_split() to keep the CPU-only
@@ -20,17 +22,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-# rank_bm25 is the no-JDK fallback for the sparse arm (Phase 2 plan A3). pyserini needs JDK 17+
-# and is Colab/Linux-only; it stays an opt-in extra rather than a hard dependency.
-sparse = ["rank-bm25>=0.2"]
-# Colab/Linux only: pyserini needs JDK 17+ and pyjnius (no clean Windows build). The sparse
-# arm's DEFAULT is pyserini because it matches the reference BM25 latency (6.7 ms/query on the
-# 90k index, Mala §3); rank_bm25 measures ~117 ms at 50k and ~2.1 s extrapolated to ~904k, which
-# would dominate end-to-end latency and make the latency axis an artefact of the implementation.
-# Install: apt-get install -y openjdk-17-jdk-headless && uv sync --extra retrieval
-retrieval = ["pyserini>=0.22"]
-# Colab T4: vLLM serving (AWQ kernels) + instructor + OpenAI client for the judge path.
-# bitsandbytes is GONE from this path (vLLM does not do bnb).
+# vLLM serving (AWQ kernels) + instructor + OpenAI client for the judge path.
 serve = ["vllm>=0.6", "instructor>=1.0", "openai>=1.0", "ragas>=0.4.3"]
 # Reference-free metrics via the PyPI collections API. 0.4.3 verified against the wheel:
 # metrics.collections + llm_factory(client=) + embeddings.HuggingFaceEmbeddings, and the

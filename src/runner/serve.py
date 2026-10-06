@@ -116,8 +116,8 @@ def _module_present(name: str) -> bool:
 
 @contextmanager
 def serving(server: VLLMServer):
-    """`with serving(make_server(cfg)) as ep:` — launches, yields, and ALWAYS stops, so a failed
-    pass or a failing gate assert still releases the GPU for the next role."""
+    """`with serving(server_from_config(cfg, role)) as ep:` — launches, yields, and ALWAYS stops,
+    so a failed pass or a failing gate assert still releases the GPU for the next role."""
     server.launch()
     try:
         yield server
@@ -128,10 +128,11 @@ def serving(server: VLLMServer):
 def server_from_config(cfg: dict, role: str = "generator") -> VLLMServer:
     """Build a VLLMServer for a role.
 
-    With `judge.serve_id` null (the default), both roles resolve to the generator's weights — the
-    self-judge limitation, carried in the manifest as a deviation. Setting `judge.serve_id` makes
-    the two roles diverge; the two servers then need different ports, which is why the port is
-    per-role rather than global.
+    With `judge.serve_id` null, both roles resolve to the generator's weights — the self-judge
+    limitation, carried in the manifest as a deviation. Setting `judge.serve_id`
+    makes the two roles diverge; the two servers then need different ports, which is why the
+    port is per-role rather than global. Note the judge inherits the generator's `quantization`
+    unless `judge_quantization` is set — correct today only because the judge is served AWQ.
     """
     assert role in ("generator", "judge"), role
     gen = cfg["models"][cfg["_model_key"]]
@@ -231,10 +232,13 @@ def build_judge(server: VLLMServer, mode: str = "JSON"):
 
 
 def build_embeddings(device: str = "cuda"):
-    """Local MPNet embeddings — the SAME weights HybridLI already downloads
-    (sentence-transformers is a core dep), now wrapped in ragas' HuggingFaceEmbeddings
+    """Local MPNet embeddings, now wrapped in ragas' HuggingFaceEmbeddings
     (ragas/embeddings/huggingface_provider.py), which _validate_embeddings
-    (metrics/collections/base.py:123) accepts."""
+    (metrics/collections/base.py:123) accepts.
+
+    This is the model's ONLY use, which is why pinning the id matters - a bare
+    "all-mpnet-base-v2" could resolve to a different revision and put AnswerRelevancy in a
+    different embedding space than the one the number was reported under."""
     from ragas.embeddings import HuggingFaceEmbeddings
 
     return HuggingFaceEmbeddings(model="sentence-transformers/all-mpnet-base-v2", device=device)

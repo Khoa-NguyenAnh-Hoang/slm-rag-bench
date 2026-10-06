@@ -97,8 +97,8 @@ def build_corpus(
     questions, and collapsing by text alone would hand the same doc_id to two different titles —
     which silently corrupts the title→doc_id map that gold matching is built on.
 
-    The 90k-row train split yields ~500-900k paragraphs — the index build is tens of minutes
-    and is cached by the retriever, not here.
+    The 90k-row train split yields 483,696 paragraphs after (title, text) dedup — measured, not
+    estimated, because this number is the `depth` every retrieval metric is reported at.
 
     max_paras caps the corpus for local iteration; it MUST be recorded in the manifest, because
     a capped corpus inflates every retrieval metric.

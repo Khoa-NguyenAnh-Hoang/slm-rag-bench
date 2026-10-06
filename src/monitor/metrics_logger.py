@@ -182,11 +182,19 @@ if __name__ == "__main__":
     assert p["n_with_api_cost"] == 1 and p["n_with_gpu_cost"] == 1
 
     # Price-card resolution must fail loudly on a bad key, never silently price at zero.
+    # Asserted against the SHIPPED card, and only on properties that must hold whatever the
+    # current rates are: non-zero rates, a version string, a real bool. An earlier version of this
+    # line asserted `verified is False` — pinning a state of the world, so verifying the rates
+    # turned a green check red. The flag is verified by reading configs/pricing.yaml, not here.
     card = load_pricing("llama3.1-8b")
-    assert card["api_usd_per_1m"]["prompt"] > 0 and card["verified"] is False, card
+    assert card["api_usd_per_1m"]["prompt"] > 0, card
+    assert card["api_usd_per_1m"]["completion"] > 0, card
+    assert isinstance(card["verified"], bool) and card["version"], card
+    assert card["gpu_usd_per_hour"] > 0, "contract rule 2: a rental is never free"
     try:
         load_pricing("not-a-model")
         raise SystemExit("FAIL: unknown model key must raise, not return $0.00")
     except KeyError:
         pass
-    print("metrics_logger OK:", s["latency_ms"], "| priced:", p["api_cost_usd"], p["gpu_cost_usd"])
+    print("metrics_logger OK:", s["latency_ms"], "| priced:", p["api_cost_usd"], p["gpu_cost_usd"],
+          "| card:", card["version"], "verified=" + str(card["verified"]))

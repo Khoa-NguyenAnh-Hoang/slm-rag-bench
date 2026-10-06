@@ -1,0 +1,515 @@
+{
+  "cell": "baseline-qwen2.5-1.5b",
+  "config": {},
+  "summary": {
+    "n_queries": 20,
+    "latency_ms": {
+      "mean": 855.0,
+      "p95": 900.0
+    },
+    "stage_latency_ms": {
+      "retrieve": {
+        "mean": 240.0,
+        "p95": 300.0,
+        "n": 20
+      },
+      "rerank": {
+        "mean": 240.0,
+        "p95": 300.0,
+        "n": 20
+      },
+      "generate": {
+        "mean": 240.0,
+        "p95": 300.0,
+        "n": 20
+      }
+    },
+    "ttft_ms": {
+      "mean": 42.75,
+      "p95": 49.50000000000001
+    },
+    "tok_per_s": {
+      "mean": 12.0,
+      "p95": 10.0
+    },
+    "prompt_tokens": 1000,
+    "completion_tokens": 200,
+    "total_tokens": 1200,
+    "api_cost_usd": 0.0004,
+    "gpu_cost_usd": 0.001,
+    "n_with_api_cost": 20,
+    "n_with_gpu_cost": 20
+  },
+  "corpus": {},
+  "pricing": {
+    "version": "fixture",
+    "verified": true
+  },
+  "wall_clock_s": 120.0,
+  "retrieval": {
+    "map@3": 0.9,
+    "recall@10": 0.95
+  },
+  "adjusted_accuracy_pct": 62.0,
+  "adjusted_accuracy_formula": "Correct / (Correct + Hallucinated) * 100",
+  "raw_accuracy_pct": 80.0,
+  "hallucination_rate_pct": 20.0,
+  "rejection_rate_pct": 0.0,
+  "unlabelled_pct": 0.0,
+  "label_note": "fixture",
+  "crag_action_distribution": {
+    "Correct": 14,
+    "Ambiguous": 4,
+    "Incorrect": 2
+  },
+  "ragas": {
+    "faithfulness": 0.75,
+    "faithfulness_n": 20
+  },
+  "queries": [
+    {
+      "question_id": "q0",
+      "answer": "a",
+      "latency_ms": 720.0,
+      "ttft_ms": 36.0,
+      "retrieved_ids": [
+        1
+      ],
+      "gold_ids": [
+        1
+      ],
+      "action": "Correct",
+      "stage_latency_ms": {
+        "retrieve": 3.0,
+        "rerank": 4.0,
+        "generate": 713.0
+      },
+      "extra": {
+        "label": "Hallucinated",
+        "gold_in_index": true
+      }
+    },
+    {
+      "question_id": "q1",
+      "answer": "a",
+      "latency_ms": 810.0,
+      "ttft_ms": 40.5,
+      "retrieved_ids": [
+        1
+      ],
+      "gold_ids": [
+        1
+      ],
+      "action": "Correct",
+      "stage_latency_ms": {
+        "retrieve": 3.0,
+        "rerank": 4.0,
+        "generate": 803.0
+      },
+      "extra": {
+        "label": "Correct",
+        "gold_in_index": true
+      }
+    },
+    {
+      "question_id": "q2",
+      "answer": "a",
+      "latency_ms": 900.0,
+      "ttft_ms": 45.0,
+      "retrieved_ids": [
+        1
+      ],
+      "gold_ids": [
+        1
+      ],
+      "action": "Correct",
+      "stage_latency_ms": {
+        "retrieve": 3.0,
+        "rerank": 4.0,
+        "generate": 893.0
+      },
+      "extra": {
+        "label": "Correct",
+        "gold_in_index": true
+      }
+    },
+    {
+      "question_id": "q3",
+      "answer": "a",
+      "latency_ms": 990.0000000000001,
+      "ttft_ms": 49.50000000000001,
+      "retrieved_ids": [
+        1
+      ],
+      "gold_ids": [
+        1
+      ],
+      "action": "Correct",
+      "stage_latency_ms": {
+        "retrieve": 3.0,
+        "rerank": 4.0,
+        "generate": 983.0000000000001
+      },
+      "extra": {
+        "label": "Correct",
+        "gold_in_index": true
+      }
+    },
+    {
+      "question_id": "q4",
+      "answer": "a",
+      "latency_ms": 720.0,
+      "ttft_ms": 36.0,
+      "retrieved_ids": [
+        1
+      ],
+      "gold_ids": [
+        1
+      ],
+      "action": "Correct",
+      "stage_latency_ms": {
+        "retrieve": 3.0,
+        "rerank": 4.0,
+        "generate": 713.0
+      },
+      "extra": {
+        "label": "Correct",
+        "gold_in_index": true
+      }
+    },
+    {
+      "question_id": "q5",
+      "answer": "a",
+      "latency_ms": 810.0,
+      "ttft_ms": 40.5,
+      "retrieved_ids": [
+        1
+      ],
+      "gold_ids": [
+        1
+      ],
+      "action": "Correct",
+      "stage_latency_ms": {
+        "retrieve": 3.0,
+        "rerank": 4.0,
+        "generate": 803.0
+      },
+      "extra": {
+        "label": "Hallucinated",
+        "gold_in_index": true
+      }
+    },
+    {
+      "question_id": "q6",
+      "answer": "a",
+      "latency_ms": 900.0,
+      "ttft_ms": 45.0,
+      "retrieved_ids": [
+        1
+      ],
+      "gold_ids": [
+        1
+      ],
+      "action": "Correct",
+      "stage_latency_ms": {
+        "retrieve": 3.0,
+        "rerank": 4.0,
+        "generate": 893.0
+      },
+      "extra": {
+        "label": "Correct",
+        "gold_in_index": true
+      }
+    },
+    {
+      "question_id": "q7",
+      "answer": "a",
+      "latency_ms": 990.0000000000001,
+      "ttft_ms": 49.50000000000001,
+      "retrieved_ids": [
+        1
+      ],
+      "gold_ids": [
+        1
+      ],
+      "action": "Correct",
+      "stage_latency_ms": {
+        "retrieve": 3.0,
+        "rerank": 4.0,
+        "generate": 983.0000000000001
+      },
+      "extra": {
+        "label": "Correct",
+        "gold_in_index": true
+      }
+    },
+    {
+      "question_id": "q8",
+      "answer": "a",
+      "latency_ms": 720.0,
+      "ttft_ms": 36.0,
+      "retrieved_ids": [
+        1
+      ],
+      "gold_ids": [
+        1
+      ],
+      "action": "Correct",
+      "stage_latency_ms": {
+        "retrieve": 3.0,
+        "rerank": 4.0,
+        "generate": 713.0
+      },
+      "extra": {
+        "label": "Correct",
+        "gold_in_index": true
+      }
+    },
+    {
+      "question_id": "q9",
+      "answer": "a",
+      "latency_ms": 810.0,
+      "ttft_ms": 40.5,
+      "retrieved_ids": [
+        1
+      ],
+      "gold_ids": [
+        1
+      ],
+      "action": "Correct",
+      "stage_latency_ms": {
+        "retrieve": 3.0,
+        "rerank": 4.0,
+        "generate": 803.0
+      },
+      "extra": {
+        "label": "Correct",
+        "gold_in_index": true
+      }
+    },
+    {
+      "question_id": "q10",
+      "answer": "a",
+      "latency_ms": 900.0,
+      "ttft_ms": 45.0,
+      "retrieved_ids": [
+        1
+      ],
+      "gold_ids": [
+        1
+      ],
+      "action": "Correct",
+      "stage_latency_ms": {
+        "retrieve": 3.0,
+        "rerank": 4.0,
+        "generate": 893.0
+      },
+      "extra": {
+        "label": "Hallucinated",
+        "gold_in_index": true
+      }
+    },
+    {
+      "question_id": "q11",
+      "answer": "a",
+      "latency_ms": 990.0000000000001,
+      "ttft_ms": 49.50000000000001,
+      "retrieved_ids": [
+        1
+      ],
+      "gold_ids": [
+        1
+      ],
+      "action": "Correct",
+      "stage_latency_ms": {
+        "retrieve": 3.0,
+        "rerank": 4.0,
+        "generate": 983.0000000000001
+      },
+      "extra": {
+        "label": "Correct",
+        "gold_in_index": true
+      }
+    },
+    {
+      "question_id": "q12",
+      "answer": "a",
+      "latency_ms": 720.0,
+      "ttft_ms": 36.0,
+      "retrieved_ids": [
+        1
+      ],
+      "gold_ids": [
+        1
+      ],
+      "action": "Correct",
+      "stage_latency_ms": {
+        "retrieve": 3.0,
+        "rerank": 4.0,
+        "generate": 713.0
+      },
+      "extra": {
+        "label": "Correct",
+        "gold_in_index": true
+      }
+    },
+    {
+      "question_id": "q13",
+      "answer": "a",
+      "latency_ms": 810.0,
+      "ttft_ms": 40.5,
+      "retrieved_ids": [
+        1
+      ],
+      "gold_ids": [
+        1
+      ],
+      "action": "Correct",
+      "stage_latency_ms": {
+        "retrieve": 3.0,
+        "rerank": 4.0,
+        "generate": 803.0
+      },
+      "extra": {
+        "label": "Correct",
+        "gold_in_index": true
+      }
+    },
+    {
+      "question_id": "q14",
+      "answer": "a",
+      "latency_ms": 900.0,
+      "ttft_ms": 45.0,
+      "retrieved_ids": [
+        1
+      ],
+      "gold_ids": [
+        1
+      ],
+      "action": "Correct",
+      "stage_latency_ms": {
+        "retrieve": 3.0,
+        "rerank": 4.0,
+        "generate": 893.0
+      },
+      "extra": {
+        "label": "Correct",
+        "gold_in_index": true
+      }
+    },
+    {
+      "question_id": "q15",
+      "answer": "a",
+      "latency_ms": 990.0000000000001,
+      "ttft_ms": 49.50000000000001,
+      "retrieved_ids": [
+        1
+      ],
+      "gold_ids": [
+        1
+      ],
+      "action": "Correct",
+      "stage_latency_ms": {
+        "retrieve": 3.0,
+        "rerank": 4.0,
+        "generate": 983.0000000000001
+      },
+      "extra": {
+        "label": "Hallucinated",
+        "gold_in_index": true
+      }
+    },
+    {
+      "question_id": "q16",
+      "answer": "a",
+      "latency_ms": 720.0,
+      "ttft_ms": 36.0,
+      "retrieved_ids": [
+        1
+      ],
+      "gold_ids": [
+        1
+      ],
+      "action": "Correct",
+      "stage_latency_ms": {
+        "retrieve": 3.0,
+        "rerank": 4.0,
+        "generate": 713.0
+      },
+      "extra": {
+        "label": "Correct",
+        "gold_in_index": true
+      }
+    },
+    {
+      "question_id": "q17",
+      "answer": "a",
+      "latency_ms": 810.0,
+      "ttft_ms": 40.5,
+      "retrieved_ids": [
+        1
+      ],
+      "gold_ids": [
+        1
+      ],
+      "action": "Correct",
+      "stage_latency_ms": {
+        "retrieve": 3.0,
+        "rerank": 4.0,
+        "generate": 803.0
+      },
+      "extra": {
+        "label": "Correct",
+        "gold_in_index": true
+      }
+    },
+    {
+      "question_id": "q18",
+      "answer": "a",
+      "latency_ms": 900.0,
+      "ttft_ms": 45.0,
+      "retrieved_ids": [
+        1
+      ],
+      "gold_ids": [
+        1
+      ],
+      "action": "Correct",
+      "stage_latency_ms": {
+        "retrieve": 3.0,
+        "rerank": 4.0,
+        "generate": 893.0
+      },
+      "extra": {
+        "label": "Correct",
+        "gold_in_index": true
+      }
+    },
+    {
+      "question_id": "q19",
+      "answer": "a",
+      "latency_ms": 990.0000000000001,
+      "ttft_ms": 49.50000000000001,
+      "retrieved_ids": [
+        1
+      ],
+      "gold_ids": [
+        1
+      ],
+      "action": "Correct",
+      "stage_latency_ms": {
+        "retrieve": 3.0,
+        "rerank": 4.0,
+        "generate": 983.0000000000001
+      },
+      "extra": {
+        "label": "Correct",
+        "gold_in_index": true
+      }
+    }
+  ],
+  "judge_serve_id": "j",
+  "generator_serve_id": "baseline-qwen2.5-1.5b",
+  "gates": {},
+  "gates_green": "17/17"
+}

@@ -2,35 +2,68 @@
 #
 #   api_usd_per_1m — token counts × these rates. This is a PROXY: it prices each open-weight
 #                    model as if it were commercially served, so "faithfulness per dollar" is
-#                    comparable to API-priced baselines (EvaRAG prices its SQuAD runs this way).
-#                    It is NOT what the experiment cost.
+#                    comparable to API-priced baselines. It is NOT what the experiment cost.
 #   gpu_usd_per_hour — measured wall-clock × this rate. This IS what the experiment cost, and it
-#                    is the honest number for local/colab hardware.
+#                    is the honest number for rented hardware.
 #
-# !!! VERIFY BEFORE REPORTING !!!
-# The api rates below are plausible hosted list prices, NOT verified against any provider page.
-# `verified: false` is carried into the scorecard, so a stale rate is visible in the published
-# artifact rather than buried in a config file. Set it to true and record provider + retrieval
-# date in `source` once checked. A benchmark that reports unverified prices as measurements is
-# worse than one that reports no price at all.
+# SOURCING RULE FOR api_usd_per_1m: cheapest LIVE hosted price per model, retrieved from the
+# provider's own API on the date in `source`. "Cheapest live" because that is the number a
+# practitioner shopping for a model actually faces, and because it is one rule applied
+# uniformly — which matters more than it sounds. See the caveat below.
+#
+# !!! THE AXIS IS WEAKER THAN IT LOOKS — READ BEFORE QUOTING IT !!!
+# An open-weight model has no single price. Retrieved 2026-09-29, the same model on the same
+# day, live, at published list price:
+#
+#   Qwen3-4B-Instruct-2507    $0.01/$0.03 (nscale)  vs  $0.40/$0.80 (featherless)   40x
+#   Llama-3.1-8B-Instruct     $0.02/$0.05 (deepinfra) vs $0.06/$0.06 (nscale)          3x
+#   Llama-3.1-8B-Instruct     $0.05/$0.08 (featherless, Meta- prefixed id)            2.5x
+#
+# The 4B is priced ABOVE the 8B by featherless, which is not a cost model, it is a pricing
+# decision. So a per-model api-equivalent number measures provider pricing policy at least as
+# much as it measures the model, and the ordering of the three models on this axis can invert
+# against their ordering on measured GPU cost.
+#
+# Consequence for the writeup: quote the GPU-amortised number as the cost result, because that
+# one is measured. Quote the api-equivalent beside it as a comparability bridge to API-priced
+# baselines, always with the provider named, and never as "what this model costs". `version`
+# and `verified` ride into every manifest, so a reader can see exactly which rates produced a
+# given scorecard.
 
-version: 2026-09-29-unverified
-gpu_usd_per_hour: 0.35       # T4-class rented GPU. Adjust to what you actually paid. For free
-                              # Colab T4 pass a nominal 0.0 WITH a note — never a silent 0.
+version: 2026-09-29-verified
+# Only the GENERATOR models are priced here. The judge (Mistral-7B, judge.serve_id) is a
+# rented-GPU cost, folded into gpu_usd_per_hour over measured wall-clock — it has NO api_usd_per_1m
+# entry on purpose, so don't "complete" this file by adding one.
+# TODO(renter): this is still the T4-era figure. Set it to what your rental actually billed
+# (price x hours, including any partial hour) BEFORE running the grid — it is the one cost
+# number that is a real measurement, and a wrong rate here silently scales every cell's
+# gpu_cost_usd. Never pass a silent 0.0 for paid hardware.
+gpu_usd_per_hour: 0.35
 
 providers:
   qwen2.5-1.5b:
     label: Qwen2.5-1.5B-Instruct
-    api_usd_per_1m: {prompt: 0.10, completion: 0.10}
-    verified: false
-    source: "TODO — check the provider pricing page, record provider + retrieval date here"
+    api_usd_per_1m: {prompt: 0.04, completion: 0.08}
+    verified: true
+    source: "featherless.ai GET /v1/models -> data[id=Qwen/Qwen2.5-1.5B-Instruct].pricing
+             {input,output} in USD per 1M tokens. Retrieved 2026-09-29. Only priced live host
+             found: OpenRouter does not carry it (its smallest Qwen2.5 Instruct is 7B) and
+             DeepInfra does not either."
   qwen3-4b:
     label: Qwen3-4B-Instruct-2507
-    api_usd_per_1m: {prompt: 0.20, completion: 0.60}
-    verified: false
-    source: "TODO — check the provider pricing page, record provider + retrieval date here"
+    api_usd_per_1m: {prompt: 0.01, completion: 0.03}
+    verified: true
+    source: "nscale, via huggingface.co GET /api/models/Qwen/Qwen3-4B-Instruct-2507
+             (inferenceProviderMapping: nscale live) cross-checked against
+             router.huggingface.co GET /v1/models -> providers[nscale].pricing
+             {input,output} USD per 1M. Retrieved 2026-09-29. See the 40x caveat above:
+             featherless lists this model at $0.40/$0.80."
   llama3.1-8b:
     label: LLaMA-3.1-8B-Instruct
-    api_usd_per_1m: {prompt: 0.18, completion: 0.18}
-    verified: false
-    source: "TODO — check the provider pricing page, record provider + retrieval date here"
+    api_usd_per_1m: {prompt: 0.02, completion: 0.05}
+    verified: true
+    source: "deepinfra, via router.huggingface.co GET /v1/models ->
+             providers[deepinfra].pricing {input,output} USD per 1M.
+             Retrieved 2026-09-29. Confirmed against api.deepinfra.com/v1/openai/models ->
+             meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo metadata.pricing
+             {input_tokens,output_tokens}. novita lists the same rate."

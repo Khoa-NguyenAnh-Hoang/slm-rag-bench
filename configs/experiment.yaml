@@ -1,13 +1,17 @@
-# Phase 2 experiment definition — the 3x3 grid. This file IS the thesis's experimental design,
+# Experiment definition — the 3x2 grid. This file IS the experimental design,
 # so it is versioned and copied verbatim into every cell's manifest.json.
 #
+# The 3 models x 2 pipelines is the whole design: the retriever is FIXED, so the only axes are
+# which model you pick and whether you add a corrective loop. A 3x3 grid existed with a
+# `reranked` pipeline; it was retired because the reranker became part of the fixed retriever,
+# which is what makes two cells comparable at all.
+#
 # Run one cell:   uv run python -m src.runner.run_cell --only crag-qwen3-4b
-# Run everything:  uv run python -m src.runner.matrix          (Phase C)
+# Run everything:  uv run python -m src.runner.matrix --skip-finished
 
-n: 300                      # eval queries per cell. Locked decision: 300, not the Blueprint's
-                            # 1200 — 1200 across 9 cells is ~70+ GPU-h of judging alone, past
-                            # the 30-60 GPU-h ceiling with no failure margin.
-seed: 42                    # Action Plan.md / Mala README convention
+n: 300                      # eval queries per cell. 300, not 1200 — 1200 across 6 cells is ~70+ GPU-h
+                            # of judging alone, past any sensible budget with no failure margin.
+seed: 42                    # fixed sampling seed for reproducibility
 output_root: results
 
 # eval_split and corpus.split MUST be the same split, and that is not a default — it is a
@@ -21,57 +25,66 @@ eval_split: train
 
 # The RETRIEVAL CORPUS is deliberately much larger than n. A corpus built from only the n
 # evaluation questions is degenerate: 2 of 10 candidates are gold by construction, recall
-# saturates, and the baseline-vs-reranked ablation has nothing to separate. This is the
-# paper's 90,447-row train split ("90,000" in Mala) => ~904k paragraphs. Build is 30-60 min
-# ONCE, cached under scratch/index/<corpus-hash>/. Set max_paras to cap it for a fast local
-# run, but a capped corpus inflates every retrieval metric, so the cap is recorded in the
-# manifest and a capped run is not a publishable cell.
+# saturates, and there is nothing left for a retriever choice to separate. This is the whole
+# 90,447-row train split => 483,696 paragraphs after (title, text) dedup. Build is ~42 s ONCE,
+# cached under scratch/index/<corpus-hash>/. Set max_paras to cap it for a fast local run, but a
+# capped corpus inflates every retrieval metric, so the cap is recorded in the manifest and a
+# capped run is not a publishable cell.
 corpus: {split: train, max_paras: null}
 
 retrieval:
-  sparse: pyserini          # pyserini | rank_bm25. pyserini matches the reference BM25 latency
-                            # (6.7 ms/query, Mala §3); rank_bm25 measures ~117 ms at 50k docs and
-                            # extrapolates to ~2.1 s at ~904k, which would dominate end-to-end
-                            # latency. pyserini needs JDK 17+ (Colab apt-get, see pyproject).
-  w_sparse: 0.7             # Mala §C
-  w_dense: 0.3
-  beta_rerank: 0.85         # final = 0.85*CE + 0.15*fused, Mala hybrid_pipeline:4370
+  beta_rerank: 0.85         # final = 0.85*CE + 0.15*bm25. The BM25 term only breaks ties the
+                            # cross-encoder sees as equal; the cross-encoder is what moves
+                            # documents into the top 10.
   top_k: 10                 # passages handed to the generator
-  cand_k: 30                # fusion candidate depth before rerank
+  cand_k: 30                # sparse candidate depth before rerank
   metrics_ks: [1, 3, 5, 10] # retrieval metrics; depth is recorded per query, not assumed
+                             # There is no `sparse:` key and no w_sparse/w_dense. The retriever is
+                             # bm25s + MiniLM, sparse only, and it is FIXED: no cell may change
+                             # it, or two cells are not comparable. No dense fusion — at this
+                             # corpus the pool already holds gold 0.9800 of the time and the
+                             # reranked top-10 reaches 0.9767, so a dense arm could add at most
+                             # 0.0033 recall@10. See src/retrieval/NOTES.md.
 
 crag: {model: google/flan-t5-base, upper: 0.5, lower: -0.5, strip_top_n: 5}
       # flan-t5-base (248M) is a PROXY for CRAG's trained 0.77B t5-large evaluator, whose
       # checkpoint is not in-repo. tools/crag_validity.py scores the proxy against the vendored
-      # Code/CRAG-main/data/*/ref/ labels (Phase B, B4). _score is the only swap seam.
+      # CRAG data labels. _score is the only swap seam.
 
 generator: {max_new_tokens: 128, temperature: 0.0}
 
-# vLLM endpoint settings. These are GENERATOR settings — the judge is a client of this endpoint
-# in Phase A, so putting them under a key called `judge` would be actively misleading.
+# vLLM endpoint settings, SHARED by both roles. `port` serves the generator; `judge_port` serves
+# the judge on its own weights — never concurrently: run_cell stops the generator's
+# server before starting the judge's, so gpu_memory_utilization can stay the same for both.
+# Both roles must diverge; otherwise scoring uses the same model that wrote the answer.
 serve:
   host: 127.0.0.1
   port: 8000
-  judge_port: 8001         # only used once B1 gives the judge its own weights
-  gpu_memory_utilization: 0.5   # 8 GB of 16. Retrieval models (~1.5 GB) stay CO-RESIDENT
-                                  # through the generation pass (Phase A, A1) => peak ~9.6 GB.
-                                  # If vLLM OOMs at load, drop to 0.45.
+  judge_port: 8001         # only used once the judge gets its own weights
+  # TODO(renter): set this to a fraction of YOUR card's VRAM. 0.5 was tuned for a 16 GB T4 and
+  # wastes half of a 24 GB card. Peak is vLLM (this fraction) + MiniLM 0.1 + flan-t5 0.3 GB.
+  # If vLLM OOMs at load, lower it. Recorded in every manifest, so a wrong value is visible.
+  gpu_memory_utilization: 0.5
   max_model_len: 4096
   extra_args: []           # e.g. [--max-num-seqs, 1] to force single-sequence latency
 
 judge:
-  # Phase A: serve_id is null, so judge == generator (documented self-judge limitation, recorded
-  # as a manifest deviation). Phase B (B1) sets this to a different model and the roles diverge.
-  serve_id: null
+  # The judge is its own AWQ Mistral on its own port. Source of record is the
+  # ungated mistralai repo; the served checkpoint is the community AWQ mirror (the source repo's
+  # bf16 weights are ~15 GB and do not fit at gpu_memory_utilization 0.5, and the role inherits
+  # quantisation "awq" from the generator's, which is right for this mirror and would be fatal
+  # for bf16). Mistral is absent from the 2×Qwen + 1×Llama generator matrix.
+  model_id: mistralai/Mistral-7B-Instruct-v0.3
+  serve_id: solidrust/Mistral-7B-Instruct-v0.3-AWQ
   mode: JSON               # vLLM guided-JSON honors response_format; MD_JSON is the fallback
   probe_min_pass: 4
 
-# The 3 pipelines are NOT listed here: they are Pipeline dataclasses in src/pipeline.py and
+# The 2 pipelines are NOT listed here: they are Pipeline dataclasses in src/pipeline.py and
 # naming them in two places would mean editing one and silently running the other.
 models:
   qwen2.5-1.5b:
     label: Qwen2.5-1.5B-Instruct
-    model_id: Qwen/Qwen2.5-1.5B-Instruct          # fp16 source of record for the thesis
+    model_id: Qwen/Qwen2.5-1.5B-Instruct          # fp16 source of record
     serve_id: Qwen/Qwen2.5-1.5B-Instruct-AWQ      # OFFICIAL 4-bit, 145,532 dl (public)
     quantization: awq
   qwen3-4b:

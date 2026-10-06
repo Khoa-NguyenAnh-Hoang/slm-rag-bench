@@ -3,7 +3,7 @@
 Four decisions that are not obvious from the code:
 
   * NO STAGE BATCHING. Retrieval and CRAG run per query inside the same timed chain, with the
-    retrieval models co-resident with the vLLM server (MPNet+MiniLM+flan-t5 ~1.5 GB + vLLM 8 GB
+    retrieval models co-resident with the vLLM server (MiniLM+flan-t5 ~0.7 GB + vLLM 8 GB
     < 16 GB T4). Batching the stages and reporting sum(stage_latency_ms) yields a sum of
     separately measured distributions, not an observed end-to-end number — and latency is the
     whole point. One outer timer spans retrieve -> rerank -> crag -> generate per query.
@@ -93,13 +93,17 @@ def write_manifest(out_dir: Path, cfg: dict, pipeline: str, model_key: str,
             "gpu": torch.cuda.get_device_name(0) if torch.cuda.is_available() else "cpu",
             "torch": torch.__version__,
         },
-        "deviations": [
-            "judge == generator: judge.serve_id is null, so both roles resolve to one endpoint",
-            "CRAG evaluator is the flan-t5-base proxy, not CRAG's trained 0.77B t5-large",
-            f"sparse arm = {cfg['retrieval']['sparse']}",
-            f"api prices unverified: pricing version {pricing['version']}, "
-            f"verified={pricing['verified']} (see configs/pricing.yaml)",
-        ] + ([f"CORPUS CAPPED at {cap} paragraphs — every retrieval metric is inflated and this "
+        "deviations": (
+            (["judge == generator: judge.serve_id is null, so both roles resolve to one endpoint"]
+                if not cfg["judge"].get("serve_id") else [])
+            + ["CRAG evaluator is the flan-t5-base proxy, not CRAG's trained 0.77B t5-large",
+               "fixed retriever is bm25s + MiniLM rerank, sparse only: no dense fusion. Sparse-only "
+               "recall@30 is 0.9800 and the reranked top-10 is 0.9767, so a dense arm fused into "
+               "this pool could add at most 0.0033 recall@10 (src/retrieval/NOTES.md)"]
+            + ([f"api prices unverified: pricing version {pricing['version']}, "
+                f"verified={pricing['verified']} (see configs/pricing.yaml)"]
+               if not pricing.get("verified") else [])
+        ) + ([f"CORPUS CAPPED at {cap} paragraphs — every retrieval metric is inflated and this "
               "cell is NOT publishable"] if cap else []),
     }, ensure_ascii=False, indent=2), encoding="utf-8")
 
@@ -163,9 +167,10 @@ def phase_a_gates(pipeline, results: list[dict], summary: dict, scorecard: dict,
         "observed latency dominates stages": all(
             r["latency_ms"] >= sum(r["stage_latency_ms"].values()) - 1e-6 for r in results),
         "P95 latency present": (summary["latency_ms"]["p95"] or 0) > 0,
-        "per-stage P95 present": {"retrieve", "generate"} <= set(summary["stage_latency_ms"]),
-        "rerank is its own stage (reranked/crag only)": (
-            "rerank" in summary["stage_latency_ms"] if pipeline.rerank else True),
+        # rerank is in the fixed retriever, so it runs in every cell and its latency must be
+        # observed separately rather than folded into `retrieve`.
+        "per-stage P95 present": {"retrieve", "rerank", "generate"} <= set(
+            summary["stage_latency_ms"]),
         "crag is its own stage (crag only)": (
             "crag" in summary["stage_latency_ms"] if pipeline.correct else True),
         "TTFT measured on every query": all((r["ttft_ms"] or 0) > 0 for r in results),
@@ -176,6 +181,10 @@ def phase_a_gates(pipeline, results: list[dict], summary: dict, scorecard: dict,
         "CRAG has a non-Correct trigger": (
             any(k != "Correct" for k in scorecard["crag_action_distribution"]) if pipeline.correct
             else True),
+        # The faithfulness axis must not be scored by the model that wrote the answer. The
+        # scorecard carries both serve_ids so this gate is a pure function of the artifact.
+        "judge != generator": bool(scorecard.get("judge_serve_id"))
+        and scorecard["judge_serve_id"] != scorecard.get("generator_serve_id"),
         # --- contract (src/contract.py) ---
         "contract: no fabricated measurement": not violations,
         "contract: no fabricated verdict": all(
@@ -240,13 +249,10 @@ def main() -> int:
     print(f"[{cid}] manifest written -> {out_dir/'manifest.json'}", flush=True)
 
     # ---- retrieval + correction (co-resident with the server from here on) ----
-    from src.retrieval.hybrid_reranker import HybridLI
+    from src.retrieval.retriever import Retriever
 
-    hy = HybridLI(texts, w_sparse=cfg["retrieval"]["w_sparse"],
-                  w_dense=cfg["retrieval"]["w_dense"],
-                  beta_rerank=cfg["retrieval"]["beta_rerank"],
-                  device="cuda", sparse=cfg["retrieval"]["sparse"],
-                  cand_k=int(cfg["retrieval"]["cand_k"]))
+    hy = Retriever(texts, beta_rerank=cfg["retrieval"]["beta_rerank"],
+                   device="cuda", cand_k=int(cfg["retrieval"]["cand_k"]))
     crag = None
     if pipeline.correct:
         from src.evaluator.crag_module import CRAGEvaluator
@@ -298,7 +304,11 @@ def main() -> int:
                       f"ttft={res.ttft_ms if res.ttft_ms is None else round(res.ttft_ms)}ms "
                       f"{res.answer[:60]!r}", flush=True)
 
-        judge = build_judge(server, cfg["judge"]["mode"])
+    # The judge is a DIFFERENT model on its own endpoint. It runs AFTER the generator's server has
+    # stopped: seq. two vLLM instances would not fit one card. ragas is CPU-bound except the judge
+    # calls, and the local embeddings ride the same card with ~half the VRAM spare.
+    with serving(server_from_config(cfg, "judge")) as judge_server:
+        judge = build_judge(judge_server, cfg["judge"]["mode"])
         embeddings = build_embeddings()
         try:
             ragas = ragas_scores(results, judge, embeddings)
@@ -331,8 +341,17 @@ def main() -> int:
         "crag_action_distribution": dict(
             collections.Counter(r["action"] for r in results if r["action"])),
         "ragas": ragas,
+        "judge_serve_id": cfg["judge"].get("serve_id"),
+        "generator_serve_id": cfg["models"][model_key]["serve_id"],
         "queries": results,
     }
+    # Gates are computed BEFORE the scorecard is written so the results are part of the
+    # artifact. Two reasons: a cell that failed its gates must not be indistinguishable from a
+    # cell that was never attempted, and matrix.py --skip-finished has to tell them apart or it
+    # re-runs a finished grid (or worse, skips a broken one).
+    checks = phase_a_gates(pipeline, results, summary, scorecard, n, logger.records, runs)
+    scorecard["gates"] = checks
+    scorecard["gates_green"] = f"{sum(checks.values())}/{len(checks)}"
     (out_dir / "scorecard.json").write_text(
         json.dumps(scorecard, ensure_ascii=False, indent=2), encoding="utf-8")
 
@@ -340,17 +359,15 @@ def main() -> int:
                       ("cell", "wall_clock_s", "adjusted_accuracy_pct", "rejection_rate_pct")},
                      indent=2))
     print("retrieval:", json.dumps(scorecard["retrieval"], indent=2))
-    # `or 0.0` here was a rule-2 violation of this repo's own making: it printed $0.000000
+    # `or 0.0` here would be a rule-2 violation of this repo's own making: it printed $0.000000
     # whenever cost was unavailable, which is indistinguishable from a genuinely free query.
-    # The contract scanner (src/contract.py) caught it; unavailable now prints as n/a.
+    # Unavailable now prints as n/a.
     def _usd(v) -> str:
         return "n/a (unavailable)" if v is None else f"${v:.6f}"
 
     print(f"cost: api {_usd(summary['api_cost_usd'])} | gpu {_usd(summary['gpu_cost_usd'])} "
           f"(pricing {pricing['version']}, verified={pricing['verified']})")
 
-    # ---- gates ----
-    checks = phase_a_gates(pipeline, results, summary, scorecard, n, logger.records, runs)
     for name, ok in checks.items():
         print(("PASS  " if ok else "FAIL  ") + name)
     print(f"\n{sum(checks.values())}/{len(checks)} gates green -> {out_dir}")
@@ -370,20 +387,20 @@ if __name__ == "__main__":
                    "stage_latency_ms": {k: {"mean": 1.0, "p95": 2.0, "n": n} for k in stages},
                    "api_cost_usd": 0.0004}
         card = {"adjusted_accuracy_pct": 50.0, "ragas": {"faithfulness_n": n},
-                "crag_action_distribution": {"Correct": 1, "Ambiguous": 1, "Incorrect": 1}}
-        # Config/code drift check. `retrieval.top_k` and `pipelines` were both in the YAML and
-        # read by nothing, so editing them did nothing — the config described runs that never
-        # happened. Assert every key the code actually reads exists, so a rename is loud.
+                "crag_action_distribution": {"Correct": 1, "Ambiguous": 1, "Incorrect": 1},
+                "judge_serve_id": "judge-x", "generator_serve_id": "gen-y"}
+        # Config/code drift check. A key present in the YAML and read by nothing makes the config
+        # describe runs that never happened. Assert every key the code reads exists, so a rename
+        # is loud.
         cfg = yaml.safe_load(Path("configs/experiment.yaml").read_text(encoding="utf-8"))
         required = {
             "": ("n", "seed", "eval_split", "output_root", "corpus", "retrieval", "crag",
                  "generator", "judge", "serve", "models"),
             "corpus": ("split", "max_paras"),
-            "retrieval": ("sparse", "w_sparse", "w_dense", "beta_rerank", "top_k", "cand_k",
-                          "metrics_ks"),
+            "retrieval": ("beta_rerank", "top_k", "cand_k", "metrics_ks"),
             "crag": ("model", "upper", "lower", "strip_top_n"),
             "generator": ("max_new_tokens", "temperature"),
-            "judge": ("mode", "serve_id"),
+            "judge": ("mode", "serve_id", "model_id"),
             "serve": ("host", "port", "gpu_memory_utilization", "max_model_len"),
         }
         for path, keys in required.items():
@@ -394,8 +411,13 @@ if __name__ == "__main__":
             assert {"model_id", "serve_id"} <= m.keys(), f"model {key}: need model_id + serve_id"
         assert cfg["eval_split"] == cfg["corpus"]["split"], (
             "locked decision 6: eval and corpus must share a split, or gold is outside the index")
-        assert cfg["retrieval"]["sparse"] in ("pyserini", "rank_bm25"), cfg["retrieval"]["sparse"]
         assert len(cfg["models"]) == 3, f"expected 3 models, got {sorted(cfg['models'])}"
+        # The config must not carry retrieval knobs the code no longer reads. A key that survives
+        # in the YAML and is read by nothing is worse than a missing key, because editing it looks
+        # like it changes the run.
+        assert not ({"w_sparse", "w_dense", "sparse"} & cfg["retrieval"].keys()), \
+            f"dead retrieval keys back in the config: {sorted(cfg['retrieval'])}"
+        assert 0.0 < cfg["retrieval"]["beta_rerank"] <= 1.0, cfg["retrieval"]["beta_rerank"]
 
         p = PIPELINES["crag"]
         run_scores = [{"depth": 10.0, "map@3": 0.5, "coverage": 1.0}]
@@ -435,12 +457,15 @@ if __name__ == "__main__":
             break_it(bad[0])
             assert not g(bad)[name], f"gate {name!r} did not fire"
         # Stage-presence gates read the summary (which MetricsLogger derives from the same
-        # records), so they are broken at the summary.
-        for name, drop in (("rerank is its own stage (reranked/crag only)", "rerank"),
-                           ("crag is its own stage (crag only)", "crag")):
-            s2 = {**summary, "stage_latency_ms": {k: v for k, v in summary["stage_latency_ms"].items()
-                                                  if k != drop}}
-            assert not g(s=s2)[name], f"gate {name!r} did not fire"
+        # records), so they are broken at the summary. rerank is unconditional now (it is part
+        # of the fixed retriever), so dropping it must fail the combined per-stage gate.
+        def without_stage(drop):
+            return {**summary, "stage_latency_ms": {
+                k: v for k, v in summary["stage_latency_ms"].items() if k != drop}}
+        assert not g(s=without_stage("rerank"))["per-stage P95 present"], \
+            "dropping the rerank stage must fail 'per-stage P95 present'"
+        assert not g(s=without_stage("crag"))["crag is its own stage (crag only)"], \
+            "gate 'crag is its own stage (crag only)' did not fire"
         for name, card_bad in (("ragas faithfulness scored", {"ragas": {}}),
                                ("adjusted accuracy reported", {"adjusted_accuracy_pct": None})):
             assert not g(c={**card, **card_bad})[name], name
@@ -452,6 +477,11 @@ if __name__ == "__main__":
         # An all-"Correct" CRAG run is a red flag, not a success: the evaluator never fired.
         assert not g(c={**card, "crag_action_distribution": {"Correct": 3}})[
             "CRAG has a non-Correct trigger"]
+        # Self-judge must fail loudly: identical serve_ids, and null judge.
+        assert not g(c={**card, "judge_serve_id": "gen-y"})["judge != generator"], \
+            "judge == generator did not fail the gate"
+        assert not g(c={**card, "judge_serve_id": None})["judge != generator"], \
+            "a null judge.serve_id did not fail the gate"
         # contract gates, broken at their own inputs
         for name, rc in (("contract: no fabricated measurement",
                           [replace(recs[0], api_cost_usd=free)]),
@@ -461,10 +491,13 @@ if __name__ == "__main__":
         assert not g(rn=[{"map@3": 0.5}])["contract: retrieval scores carry metadata"], \
             "a score with no depth must fail the gate"
 
-        # baseline has no rerank/crag stage, so those two gates must not demand them.
+        # baseline must not demand the crag stage or a non-Correct trigger, but it DOES demand
+        # rerank — the retriever is the same in both pipelines.
         b = phase_a_gates(PIPELINES["baseline"], res0 * n, summary, card, n, recs * n,
                           run_scores * n)
-        assert b["rerank is its own stage (reranked/crag only)"] and b["crag is its own stage (crag only)"]
+        assert b["crag is its own stage (crag only)"] and b["CRAG has a non-Correct trigger"], \
+            "baseline has no crag stage and those gates must tolerate that"
+        assert b["per-stage P95 present"], "baseline still reranks: the retriever is fixed"
         assert b["contract: source has no rule-2 violation"], \
             scan_source("src") and "rule-2 violation in src/"
         print(f"run_cell gates OK: {len(gates)} gates, each verified to fire")

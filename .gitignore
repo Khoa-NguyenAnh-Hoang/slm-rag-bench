@@ -9,6 +9,9 @@ scratch/
 outputs/*
 !outputs/.gitkeep
 
+# Internal Obsidian notes
+Notes/
+
 # Model / data caches
 .cache/
 

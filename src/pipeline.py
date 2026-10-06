@@ -1,7 +1,13 @@
 """The pipeline spec and the timed chain.
 
-A pipeline is a spec, not a code path: `baseline`, `reranked` and `crag` are three `Pipeline`
-values sharing one `answer_query()`. Adding an ablation means adding a value, not a branch.
+A pipeline is a spec, not a code path: `baseline` and `crag` are two `Pipeline` values sharing
+one `answer_query()`. Adding an ablation means adding a value, not a branch.
+
+The reranker is NOT a pipeline axis. It is part of the fixed retriever (src/retrieval/), so it
+is on in every cell and there is nothing to compare it against. That is deliberate: the
+benchmark's question is which *model* to pick under a fixed retriever, and a retriever that
+varies between cells makes two cells incomparable. See src/retrieval/NOTES.md for the
+measurements that settled it.
 
 One outer timer spans the whole chain and each stage keeps its own, so `latency_ms` is observed
 rather than derived. `latency_ms >= sum(stage_latency_ms)` then holds by construction, and any
@@ -29,19 +35,17 @@ class Pipeline:
     exactly one source of truth (a strip_top_n knob in two places is how a scorecard ends up
     describing a run that never happened)."""
     name: str
-    rerank: bool
     correct: bool
     top_k: int = 10
 
     def stages(self) -> list[str]:
-        return [s for s, on in (("retrieve", True), ("rerank", self.rerank),
+        return [s for s, on in (("retrieve", True), ("rerank", True),
                                 ("crag", self.correct), ("generate", True)) if on]
 
 
 PIPELINES: dict[str, Pipeline] = {p.name: p for p in (
-    Pipeline("baseline", rerank=False, correct=False),
-    Pipeline("reranked", rerank=True,  correct=False),
-    Pipeline("crag",     rerank=True,  correct=True),
+    Pipeline("baseline", correct=False),
+    Pipeline("crag",     correct=True),
 )}
 
 
@@ -90,7 +94,7 @@ def answer_query(
 ) -> QueryResult:
     """Run one query end-to-end with a single outer timer.
 
-    hy    : HybridLI (or a fake with .retrieve/.rerank)
+    hy    : Retriever (or a fake with .retrieve/.rerank)
     crag  : CRAGEvaluator (or a fake with .evaluate), ignored when p.correct is False
     generate : (prompt) -> (text, prompt_tokens, completion_tokens, ttft_ms|None)
     """
@@ -98,10 +102,9 @@ def answer_query(
     st: dict[str, float] = {}
 
     with stage_timer(st, "retrieve"):
-        docs = hy.retrieve(row["question"], k=p.top_k if not p.rerank else None)
-    if p.rerank:
-        with stage_timer(st, "rerank"):
-            docs = hy.rerank(row["question"], docs, k=p.top_k)
+        docs = hy.retrieve(row["question"])
+    with stage_timer(st, "rerank"):
+        docs = hy.rerank(row["question"], docs, k=p.top_k)
 
     action: str | None = None
     cr: dict | None = None
@@ -176,22 +179,22 @@ def adjusted_accuracy(labels: list[str]) -> float | float:
 if __name__ == "__main__":
     # Self-check with fakes: no torch, no GPU, no network. This is the contract every cell obeys.
     class FakeHy:
-        """retrieve() returns ASCENDING fused score; rerank() returns DESCENDING. So the doc-id
-        order provably differs between the two pipelines — if answer_query ignored rerank's
-        output, retrieved_ids would come back ascending under the 'reranked' pipeline too."""
+        """retrieve() returns ASCENDING sparse score; rerank() returns DESCENDING. So the
+        doc-id order provably differs between the two stages — if answer_query ignored
+        rerank's output, retrieved_ids would come back ascending."""
 
         def __init__(self):
             self.calls = []
 
         def retrieve(self, q, k=None):
             self.calls.append(("retrieve", k))
-            return [{"doc_id": i, "text": f"d{i}", "fused_score": 0.1 * i} for i in range(6)]
+            return [{"doc_id": i, "text": f"d{i}", "sparse_score": 0.1 * i} for i in range(6)]
 
         def rerank(self, q, docs, k=10):
             self.calls.append(("rerank", k))
-            out = sorted(docs, key=lambda d: -d["fused_score"])
-            return [{"doc_id": d["doc_id"], "text": d["text"], "fused_score": d["fused_score"],
-                     "final_score": d["fused_score"]} for d in out][:k]
+            out = sorted(docs, key=lambda d: -d["sparse_score"])
+            return [{"doc_id": d["doc_id"], "text": d["text"], "sparse_score": d["sparse_score"],
+                     "final_score": d["sparse_score"]} for d in out][:k]
 
     class FakeCrag:
         def __init__(self, action):
@@ -206,25 +209,24 @@ if __name__ == "__main__":
 
     row = {"question_id": "q1", "question": "who?", "gold_ids": [2, 3]}
 
-    # baseline: no rerank, no correction, full context
+    # The reranker is part of the fixed retriever, so it runs in EVERY cell. baseline and crag
+    # must therefore agree on retrieval and differ only in the correction stage.
     hy = FakeHy()
     r = answer_query(PIPELINES["baseline"], hy, None, fake_gen, row)
-    assert [c for c, _ in hy.calls] == ["retrieve"], hy.calls
+    assert [c for c, _ in hy.calls] == ["retrieve", "rerank"], hy.calls
+    assert hy.calls[1][1] == 10, "rerank must cut the pool to the generator's top_k"
     assert r.action is None and len(r.contexts) == 6
-    assert r.retrieved_ids == [0, 1, 2, 3, 4, 5], r.retrieved_ids
-    assert set(r.stage_latency_ms) == {"retrieve", "generate"}
+    assert r.retrieved_ids == [5, 4, 3, 2, 1, 0], r.retrieved_ids
+    assert set(r.stage_latency_ms) == {"retrieve", "rerank", "generate"}
     assert r.latency_ms >= sum(r.stage_latency_ms.values()), "outer timer must dominate stages"
-
-    # reranked: rerank is its own stage, its own latency, and it actually reorders
-    hy = FakeHy()
-    r2 = answer_query(PIPELINES["reranked"], hy, None, fake_gen, row)
-    assert [c for c, _ in hy.calls] == ["retrieve", "rerank"]
-    assert set(r2.stage_latency_ms) == {"retrieve", "rerank", "generate"}
-    assert r2.retrieved_ids == [5, 4, 3, 2, 1, 0], r2.retrieved_ids
+    assert "reranked" not in PIPELINES, "the reranker is fixed, not a pipeline axis"
+    assert PIPELINES["baseline"].stages() == ["retrieve", "rerank", "generate"]
+    assert PIPELINES["crag"].stages() == ["retrieve", "rerank", "crag", "generate"]
 
     # crag: strips when Correct, empty context (abstention branch) when Incorrect
     r3 = answer_query(PIPELINES["crag"], FakeHy(), FakeCrag("Correct"), fake_gen, row)
     assert r3.action == "Correct" and len(r3.contexts) == 5 and "crag" in r3.stage_latency_ms
+    assert r3.retrieved_ids == r.retrieved_ids, "same retriever => same docs in both pipelines"
     r4 = answer_query(PIPELINES["crag"], FakeHy(), FakeCrag("Incorrect"), fake_gen, row)
     assert r4.action == "Incorrect" and r4.contexts == []
     assert "no relevant context retrieved" in build_prompt(r4.question, r4.contexts)
@@ -242,6 +244,5 @@ if __name__ == "__main__":
     assert adjusted_accuracy(["Correct", "Hallucinated", "Unknown"]) == 50.0
     assert adjusted_accuracy(["NoAnswer", "NoAnswer"]) is None
     assert adjusted_accuracy(["Unknown", "Unknown"]) is None
-    print("pipeline OK: 3 pipelines, stage sets",
-          [sorted(answer_query(PIPELINES[n], FakeHy(), FakeCrag("Correct"), fake_gen, row)
-                   .stage_latency_ms) for n in ("baseline", "reranked", "crag")])
+    print("pipeline OK:", len(PIPELINES), "pipelines, stage sets",
+          {n: p.stages() for n, p in PIPELINES.items()})
