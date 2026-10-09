@@ -66,7 +66,7 @@ def main() -> int:
         # Gate 1: streaming + usage block + TTFT. Cheap (one call) and it must come first.
         text, p_tok, c_tok, ttft = serve_generate(
             client, server.model, "Say 'ok'.", max_new_tokens=8)
-        if not (p_tok > 0 and c_tok > 0 and ttft > 0):
+        if not (p_tok > 0 and c_tok > 0 and (ttft or 0) > 0):
             print(f"PROBE FAIL: streaming/usage — prompt={p_tok} completion={c_tok} ttft={ttft}")
             print("  the cost axis depends on this; fix the client/stream_options before running")
             return 1

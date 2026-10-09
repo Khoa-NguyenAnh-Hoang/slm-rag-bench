@@ -16,6 +16,7 @@ import os
 from pathlib import Path
 
 HF_DATASET = "hotpotqa/hotpot_qa"
+HF_REVISION = "1908d6afbbead072334abe2965f91bd2709910ab"
 SPLITS = {"dev": "validation", "train": "train"}
 
 
@@ -35,7 +36,8 @@ def load_split(split: str = "dev", cache_dir: str | Path = "scratch") -> list[di
             return json.load(f)
     from datasets import load_dataset
 
-    rows = [dict(r) for r in load_dataset(HF_DATASET, "distractor", split=SPLITS.get(split, split))]
+    rows = [dict(r) for r in load_dataset(HF_DATASET, "distractor", split=SPLITS.get(split, split),
+                                          revision=HF_REVISION)]
     cache.parent.mkdir(parents=True, exist_ok=True)
     cache.write_text(json.dumps(rows, ensure_ascii=False), encoding="utf-8")
     return rows
@@ -124,10 +126,13 @@ def dataset_manifest() -> dict:
     score a different dataset than the one reported."""
     return {
         "dataset": HF_DATASET,
+        "revision": HF_REVISION,
         "config": "distractor",
         "splits": SPLITS,
         "source": "huggingface.co/datasets/hotpotqa/hotpot_qa",
         "note": "upstream raw-JSON hosts are unreachable; the HF Hub is the only live route",
+        "cache_caveat": "a pre-existing scratch/hotpot_*.json predates this pin — delete it to "
+                        "re-fetch at HF_REVISION",
     }
 
 

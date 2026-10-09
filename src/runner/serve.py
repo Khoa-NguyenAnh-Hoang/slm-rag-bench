@@ -118,8 +118,8 @@ def _module_present(name: str) -> bool:
 def serving(server: VLLMServer):
     """`with serving(server_from_config(cfg, role)) as ep:` — launches, yields, and ALWAYS stops,
     so a failed pass or a failing gate assert still releases the GPU for the next role."""
-    server.launch()
     try:
+        server.launch()
         yield server
     finally:
         server.stop()
@@ -159,9 +159,43 @@ def serve_client(server: VLLMServer):
     return OpenAI(base_url=server.url, api_key="local", timeout=600.0)
 
 
+def token_counter(model_id: str):
+    """`str -> tokens` for the model actually served. Exact tokenizer when reachable,
+    conservative estimate (~3 chars/token, never 4: under-counting risks an HTTP 400) when
+    not — a tokenizer is the only way to preflight `max_model_len`, and chars lie."""
+    try:
+        from transformers import AutoTokenizer
+
+        tok = AutoTokenizer.from_pretrained(model_id)
+        return lambda s: len(tok.encode(s, add_special_tokens=False))
+    except Exception:
+        return lambda s: (len(s) + 2) // 3
+
+
+def fit_prompt(prompt: str, count, max_prompt_tokens: int) -> str:
+    """Drop trailing `[context N]` lines until the prompt fits the server's context window.
+
+    Preflight at the runner, not mid-pass: vLLM rejects an over-long prompt with HTTP 400,
+    and one 400 kills a whole cell. Raises if even the context-free prompt is too big —
+    truncating the instruction itself would silently change the prompt under measurement."""
+    if count(prompt) <= max_prompt_tokens:
+        return prompt
+    lines = prompt.split("\n")
+    idx = [i for i, l in enumerate(lines) if l.startswith("[context ")]
+    while idx:
+        del lines[idx.pop()]
+        cand = "\n".join(lines)
+        if count(cand) <= max_prompt_tokens:
+            return cand
+    raise ValueError(
+        f"prompt too large for the context window even with zero contexts: "
+        f"{count(chr(10).join(lines))} > {max_prompt_tokens} tokens")
+
+
 def serve_generate(client, model: str, prompt: str, max_new_tokens: int,
-                   temperature: float = 0.0) -> tuple[str, int, int, float]:
-    """One streaming chat completion -> (text, prompt_tokens, completion_tokens, ttft_ms)."""
+                   temperature: float = 0.0) -> tuple[str, int, int, float | None]:
+    """One streaming chat completion -> (text, prompt_tokens, completion_tokens, ttft_ms|None)."""
+    t0 = time.perf_counter()
     stream = client.chat.completions.create(
         model=model, messages=[{"role": "user", "content": prompt}],
         temperature=temperature, max_tokens=max_new_tokens, stream=True,
@@ -170,7 +204,6 @@ def serve_generate(client, model: str, prompt: str, max_new_tokens: int,
     chunks: list[str] = []
     ttft_ms: float | None = None
     usage = None
-    t0 = time.perf_counter()
     for ev in stream:
         if getattr(ev, "usage", None):
             usage = ev.usage
@@ -188,8 +221,7 @@ def serve_generate(client, model: str, prompt: str, max_new_tokens: int,
             "depend on it. Check the server log for a rejected stream_options, or pin an "
             "openai client version that sends it."
         )
-    return ("".join(chunks).strip(), usage.prompt_tokens, usage.completion_tokens,
-            ttft_ms if ttft_ms is not None else -1.0)
+    return ("".join(chunks).strip(), usage.prompt_tokens, usage.completion_tokens, ttft_ms)
 
 
 def ragas_compat() -> None:

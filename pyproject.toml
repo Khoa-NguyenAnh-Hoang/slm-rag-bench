@@ -1,8 +1,9 @@
 [project]
 name = "slm-rag-bench"
 version = "0.1.0"
-description = "Cost-Latency-Faithfulness benchmark for small-model RAG (Blueprint 2, GAP 5)"
+description = "Cost-Latency-Faithfulness benchmark for small-model RAG"
 readme = "README.md"
+license = "MIT"
 requires-python = ">=3.11"
 dependencies = [
     "numpy>=1.26",

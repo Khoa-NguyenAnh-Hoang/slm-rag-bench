@@ -46,11 +46,10 @@ def ndcg_at_k(rel: Sequence[int], k: int) -> float:
     return 0.0 if idcg == 0 else dcg / idcg
 
 
-def recall_at_k(rel: Sequence[int], k: int) -> float:
-    """Fraction of gold actually found in the retrieved list that was retrieved. Unlike AP this
-    is depth-independent, which makes it the right gate for the rerank-vs-baseline comparison."""
-    total = sum(rel)
-    return 0.0 if total == 0 else sum(rel[:k]) / total
+def recall_at_k(rel: Sequence[int], k: int, total_gold: int) -> float:
+    """Fraction of the gold set retrieved in the top k. Divides by total gold, not by gold found
+    in the retrieved list: a retriever that finds 1 of 2 golds scores 0.5, not 1.0."""
+    return 0.0 if total_gold == 0 else sum(rel[:k]) / total_gold
 
 
 def reciprocal_rank(rel: Sequence[int]) -> float:
@@ -68,12 +67,14 @@ def score_run(
 ) -> dict[str, float]:
     """Score one query. `depth` (how deep retrieval actually went) is recorded in the result so
     the MAP numbers are self-describing and cannot be compared across runs at different depths."""
-    rel = rel_vector(retrieved_ids[: depth or len(retrieved_ids)], gold_ids)
+    gold = list(gold_ids)
+    rel = rel_vector(retrieved_ids[: depth or len(retrieved_ids)], gold)
+    total_gold = len(set(gold))
     out: dict[str, float] = {"depth": float(depth or len(retrieved_ids))}
     for k in ks:
         out[f"map@{k}"] = average_precision_at_k(rel, k)
         out[f"ndcg@{k}"] = ndcg_at_k(rel, k)
-        out[f"recall@{k}"] = recall_at_k(rel, k)
+        out[f"recall@{k}"] = recall_at_k(rel, k, total_gold)
     out["mrr"] = reciprocal_rank(rel)
     out["coverage"] = 1.0 if any(rel) else 0.0
     return out
@@ -95,7 +96,8 @@ if __name__ == "__main__":
     assert abs(average_precision_at_k(rel, 3) - (1 + 2 / 3) / 2) < 1e-9
     assert average_precision_at_k([0, 0, 0], 3) == 0.0            # no gold found
     assert ndcg_at_k([0, 0], 3) == 0.0                            # no gold
-    assert recall_at_k(rel, 3) == 1.0 and recall_at_k(rel, 2) == 0.5
+    assert recall_at_k(rel, 3, 2) == 1.0 and recall_at_k(rel, 2, 2) == 0.5
+    assert recall_at_k([1, 0], 2, 2) == 0.5
     assert abs(reciprocal_rank(rel) - 1.0) < 1e-9 and reciprocal_rank([0, 0, 1]) == 1 / 3
 
     s = score_run([7, 8, 9, 10], gold_ids=[7, 9], ks=(1, 3), depth=4)

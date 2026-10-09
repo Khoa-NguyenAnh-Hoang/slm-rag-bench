@@ -1,4 +1,6 @@
-"""Run every CPU self-check in one command. No GPU, no network (after the first HotpotQA pull).
+"""Run every CPU self-check in one command. No GPU. Network is needed only on the first run
+(HotpotQA pull, plus MiniLM / ms-marco reranker / flan-t5-base model downloads); every later
+run is offline.
 
     uv run python -m tools.selfcheck
 

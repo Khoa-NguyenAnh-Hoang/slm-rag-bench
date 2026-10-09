@@ -27,7 +27,7 @@ import json
 import subprocess
 import sys
 import time
-from dataclasses import replace
+from dataclasses import asdict, replace
 from pathlib import Path
 
 import yaml
@@ -109,39 +109,53 @@ def write_manifest(out_dir: Path, cfg: dict, pipeline: str, model_key: str,
 
 
 def ragas_scores(samples: list[dict], judge, embeddings) -> dict[str, float]:
-    """Reference-free Faithfulness + AnswerRelevancy via the ragas collections API.
+    """Reference-free Faithfulness + AnswerRelevancy + ContextRelevance via the ragas 0.4.3
+    collections API, scored with `metric.batch_score()` — NOT `evaluate()`.
 
-    The `ragas.metrics` singletons are importable but emit DeprecationWarning and route to the
-    same validation that rejects local judges (metrics/collections/base.py:113) — the collections
-    import is the honest path.
+    `evaluate()` (ragas 0.4.3, evaluation.py:132) type-checks every entry against the LEGACY
+    `ragas.metrics.base.Metric` ABC; the collections classes inherit `SimpleBaseMetric`
+    instead, so passing them to `evaluate()` raises TypeError — which the caller's
+    `except Exception` would swallow into a scorecard `{"error": ...}` and a faithfulness
+    gate stuck at 0 forever. `batch_score` is the collections' own sync entry point
+    (collections/base.py: it wraps `asyncio.run(abatch_score(...))`).
 
-    Returns None-valued metrics as absent rather than zero, so a scoring failure is visible
-    instead of being reported as a 0.0 faithfulness.
+    Each collections metric takes a different kwargs set (its `ascore` signature), so inputs
+    are built per metric. Returns None-valued metrics as absent rather than zero, so a scoring
+    failure is visible instead of being reported as a 0.0 faithfulness.
     """
+    import math
+
     from src.runner.serve import ragas_compat
 
     ragas_compat()          # must precede the ragas import
-    from ragas import EvaluationDataset, evaluate
     from ragas.metrics.collections import AnswerRelevancy, ContextRelevance, Faithfulness
 
-    ds = EvaluationDataset.from_list([
-        {"user_input": s["question"],
-         "retrieved_contexts": s["contexts"] or [""],   # "" == the abstention branch
-         "response": s["answer"]}
-        for s in samples
-    ])
-    df = evaluate(ds, metrics=[Faithfulness(llm=judge),
-                               AnswerRelevancy(llm=judge, embeddings=embeddings),
-                               ContextRelevance(llm=judge)],
-                  llm=judge, embeddings=embeddings).to_pandas()
+    ctx = [s["contexts"] or [""] for s in samples]   # "" == the abstention branch
+    metrics = {
+        "faithfulness": (Faithfulness(llm=judge),
+                         [{"user_input": s["question"], "response": s["answer"],
+                           "retrieved_contexts": c}
+                          for s, c in zip(samples, ctx)]),
+        "answer_relevancy": (AnswerRelevancy(llm=judge, embeddings=embeddings),
+                             [{"user_input": s["question"], "response": s["answer"]}
+                              for s in samples]),
+        "context_relevance": (ContextRelevance(llm=judge),
+                              [{"user_input": s["question"], "retrieved_contexts": c}
+                               for s, c in zip(samples, ctx)]),
+    }
     out: dict[str, float] = {}
-    for col in ("faithfulness", "answer_relevancy", "context_relevance"):
-        if col not in df.columns:
-            continue
-        vals = df[col].dropna()
-        if len(vals):
-            out[col] = float(vals.mean())
-        out[f"{col}_n"] = int(len(vals))
+    for col, (metric, inputs) in metrics.items():
+        vals: list[float] = []
+        for res in metric.batch_score(inputs):
+            try:
+                v = float(res.value)
+            except (TypeError, ValueError):
+                continue
+            if not math.isnan(v):
+                vals.append(v)
+        if vals:
+            out[col] = float(sum(vals) / len(vals))
+        out[f"{col}_n"] = len(vals)
     return out
 
 
@@ -158,6 +172,7 @@ def phase_a_gates(pipeline, results: list[dict], summary: dict, scorecard: dict,
     from src.contract import UNKNOWN, check_record, check_scores, scan_source
 
     violations = [v for rec in records for v in check_record(rec)]
+    abstentions = sum(1 for r in results if r["extra"].get("label") == "NoAnswer")
     return {
         "all answers non-empty": all(r["answer"].strip() for r in results),
         "queries.jsonl complete": summary["n_queries"] == n,
@@ -165,7 +180,7 @@ def phase_a_gates(pipeline, results: list[dict], summary: dict, scorecard: dict,
         # distributions) is the exact failure this benchmark exists to avoid, so it must fail the
         # run, not annotate it.
         "observed latency dominates stages": all(
-            r["latency_ms"] >= sum(r["stage_latency_ms"].values()) - 1e-6 for r in results),
+            (r["latency_ms"] or 0) >= sum(r["stage_latency_ms"].values()) - 1e-6 for r in results),
         "P95 latency present": (summary["latency_ms"]["p95"] or 0) > 0,
         # rerank is in the fixed retriever, so it runs in every cell and its latency must be
         # observed separately rather than folded into `retrieve`.
@@ -174,10 +189,13 @@ def phase_a_gates(pipeline, results: list[dict], summary: dict, scorecard: dict,
         "crag is its own stage (crag only)": (
             "crag" in summary["stage_latency_ms"] if pipeline.correct else True),
         "TTFT measured on every query": all((r["ttft_ms"] or 0) > 0 for r in results),
-        "retrieval depth recorded": bool(results) and bool(results[0]["retrieved_ids"]),
+        "retrieval depth recorded": bool(results) and all(r["retrieved_ids"] for r in results),
         "cost is not zero": (summary["api_cost_usd"] or 0) > 0,
         "adjusted accuracy reported": scorecard["adjusted_accuracy_pct"] is not None,
-        "ragas faithfulness scored": scorecard["ragas"].get("faithfulness_n", 0) == n,
+        "ragas faithfulness scored": scorecard["ragas"].get("faithfulness_n", 0)
+        >= n - abstentions,
+        "ragas answer relevancy scored": scorecard["ragas"].get("answer_relevancy_n", 0) == n,
+        "ragas context relevancy scored": scorecard["ragas"].get("context_relevance_n", 0) == n,
         "CRAG has a non-Correct trigger": (
             any(k != "Correct" for k in scorecard["crag_action_distribution"]) if pipeline.correct
             else True),
@@ -219,6 +237,8 @@ def main() -> int:
     out_dir = Path(cfg["output_root"]) / cid
     out_dir.mkdir(parents=True, exist_ok=True)
     (out_dir / "queries.jsonl").unlink(missing_ok=True)   # logger appends; a stale file breaks gates
+    (out_dir / "scorecard.json").unlink(missing_ok=True)
+    (out_dir / "manifest.json").unlink(missing_ok=True)
 
     # ---- data ----------------------------------------------------------------
     rows = sample_hotpot(n=n, seed=cfg["seed"], split=cfg["eval_split"])
@@ -238,10 +258,18 @@ def main() -> int:
                    "queries_with_no_gold_in_corpus": missing}
     print(f"[{cid}] corpus {len(texts)} paragraphs | {n} queries | "
           f"{missing} queries whose gold is absent from the index", flush=True)
-    if missing:
-        print(f"[{cid}] ABORT: eval_split and corpus.split disagree, so gold paragraphs are "
-              "outside the index and every retrieval metric would be meaningless. "
-              "Set eval_split == corpus.split.", flush=True)
+    if cfg["eval_split"] != cfg["corpus"]["split"]:
+        print(f"[{cid}] ABORT: eval_split {cfg['eval_split']!r} != corpus.split "
+              f"{cfg['corpus']['split']!r}, so gold paragraphs are outside the index and every "
+              "retrieval metric would be meaningless.", flush=True)
+        return 2
+    if missing and cap:
+        print(f"[{cid}] WARNING: cap={cap} drops gold for {missing}/{n} queries — capped "
+              "run, NOT publishable; their retrieval scores are coverage-only "
+              "(gold_in_index=false), and the manifest records the cap.", flush=True)
+    elif missing:
+        print(f"[{cid}] ABORT: uncapped {cfg['corpus']['split']} corpus is missing gold for "
+              f"{missing}/{n} queries — a dedup or index bug, not a cap.", flush=True)
         return 2
 
     pricing = load_pricing(model_key)
@@ -263,22 +291,40 @@ def main() -> int:
                              strip_top_n=cfg["crag"]["strip_top_n"], device="cuda")
 
     # ---- serve + run ---------------------------------------------------------
-    from src.runner.serve import (build_embeddings, build_judge, serve_client, serve_generate,
-                                  server_from_config, serving)
+    from src.runner.serve import (build_embeddings, build_judge, fit_prompt, serve_client,
+                                  serve_generate, server_from_config, serving, token_counter)
 
     logger = MetricsLogger(out_dir / "queries.jsonl", pricing=pricing)
     t_wall = time.perf_counter()
     with serving(server_from_config(cfg, "generator")) as server:
         client = serve_client(server)
+        max_new = int(cfg["generator"]["max_new_tokens"])
+        count = token_counter(server.model)
+        prompt_budget = server.max_model_len - max_new
 
         def generate(prompt: str):
-            return serve_generate(client, server.model, prompt,
-                                  cfg["generator"]["max_new_tokens"],
+            return serve_generate(client, server.model,
+                                  fit_prompt(prompt, count, prompt_budget),
+                                  max_new,
                                   cfg["generator"].get("temperature", 0.0))
 
         results, runs = [], []
         for i, row in enumerate(rows):
-            res = answer_query(pipeline, hy, crag, generate, row)
+            try:
+                res = answer_query(pipeline, hy, crag, generate, row)
+            except Exception as e:
+                print(f"[{cid}] QUERY FAILED {i+1}/{len(rows)}: {type(e).__name__}: {e}",
+                      flush=True)
+                results.append({
+                    "query_id": row.get("question_id", f"q{i}"), "question": row["question"],
+                    "answer": "", "contexts": [], "retrieved_ids": [],
+                    "gold_ids": row.get("gold_ids", []), "latency_ms": None,
+                    "stage_latency_ms": {}, "action": None, "crag": None,
+                    "prompt_tokens": 0, "completion_tokens": 0, "ttft_ms": None,
+                    "extra": {"error": f"{type(e).__name__}: {e}"}})
+                runs.append(score_run([], row.get("gold_ids", []),
+                                      ks=cfg["retrieval"]["metrics_ks"], depth=0))
+                continue
             # Label BEFORE logging so queries.jsonl carries it — the per-query record is the
             # committed raw data, and a label that only exists in the scorecard aggregate cannot
             # be re-derived from it once a model judge replaces these labels.
@@ -321,8 +367,11 @@ def main() -> int:
         per_q = wall_s / max(1, len(rows))
         for rec in logger.records:
             rec.gpu_cost_usd = per_q * pricing["gpu_usd_per_hour"] / 3600.0
+    with (out_dir / "queries.jsonl").open("w", encoding="utf-8") as f:
+        for rec in logger.records:
+            f.write(json.dumps(asdict(rec), ensure_ascii=False) + "\n")
 
-    labels = [r["extra"]["label"] for r in results]
+    labels = [r["extra"].get("label", UNKNOWN) for r in results]
     summary = logger.summary()
     scorecard = {
         "cell": cid, "config": cfg, "summary": summary,
@@ -341,6 +390,7 @@ def main() -> int:
         "crag_action_distribution": dict(
             collections.Counter(r["action"] for r in results if r["action"])),
         "ragas": ragas,
+        "primary_metric": "ragas.faithfulness",
         "judge_serve_id": cfg["judge"].get("serve_id"),
         "generator_serve_id": cfg["models"][model_key]["serve_id"],
         "queries": results,
@@ -386,7 +436,9 @@ if __name__ == "__main__":
         summary = {"n_queries": n, "latency_ms": {"p95": 200.0},
                    "stage_latency_ms": {k: {"mean": 1.0, "p95": 2.0, "n": n} for k in stages},
                    "api_cost_usd": 0.0004}
-        card = {"adjusted_accuracy_pct": 50.0, "ragas": {"faithfulness_n": n},
+        card = {"adjusted_accuracy_pct": 50.0,
+                "ragas": {"faithfulness_n": n, "answer_relevancy_n": n,
+                          "context_relevance_n": n},
                 "crag_action_distribution": {"Correct": 1, "Ambiguous": 1, "Incorrect": 1},
                 "judge_serve_id": "judge-x", "generator_serve_id": "gen-y"}
         # Config/code drift check. A key present in the YAML and read by nothing makes the config
@@ -456,6 +508,21 @@ if __name__ == "__main__":
             bad = clone(res0)
             break_it(bad[0])
             assert not g(bad)[name], f"gate {name!r} did not fire"
+        failed_row = {**res0[0], "answer": "", "latency_ms": None, "stage_latency_ms": {},
+                      "retrieved_ids": [], "ttft_ms": None,
+                      "extra": {"error": "RuntimeError: boom"}}
+        bf = phase_a_gates(p, [failed_row] * n, summary, card, n, recs, run_scores * n)
+        assert not bf["all answers non-empty"] and not bf["TTFT measured on every query"] \
+            and not bf["retrieval depth recorded"] and bf["observed latency dominates stages"], \
+            bf
+        mixed = [res0[0], res0[0],
+                 {**res0[0], "extra": {"label": "NoAnswer", "gold_in_index": True}}]
+        assert phase_a_gates(p, mixed, summary, {**card, "ragas": {"faithfulness_n": 2}}, n,
+                             recs, run_scores)["ragas faithfulness scored"], \
+            "an abstention must permit faithfulness_n < n"
+        assert not phase_a_gates(p, mixed, summary, {**card, "ragas": {"faithfulness_n": 1}}, n,
+                                 recs, run_scores)["ragas faithfulness scored"], \
+            "a missed attempted query must still fail the faithfulness gate"
         # Stage-presence gates read the summary (which MetricsLogger derives from the same
         # records), so they are broken at the summary. rerank is unconditional now (it is part
         # of the fixed retriever), so dropping it must fail the combined per-stage gate.
@@ -467,6 +534,8 @@ if __name__ == "__main__":
         assert not g(s=without_stage("crag"))["crag is its own stage (crag only)"], \
             "gate 'crag is its own stage (crag only)' did not fire"
         for name, card_bad in (("ragas faithfulness scored", {"ragas": {}}),
+                               ("ragas answer relevancy scored", {"ragas": {}}),
+                               ("ragas context relevancy scored", {"ragas": {}}),
                                ("adjusted accuracy reported", {"adjusted_accuracy_pct": None})):
             assert not g(c={**card, **card_bad})[name], name
         # summary-level gates

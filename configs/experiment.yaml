@@ -93,7 +93,7 @@ models:
     serve_id: cyankiwi/Qwen3-4B-Instruct-2507-AWQ-4bit   # COMMUNITY 4-bit, 23,014 dl.
                                                    # Qwen publishes no official AWQ of the
                                                    # 2507-Instruct revision — declared deviation.
-    quantization: awq
+    quantization: null
   llama3.1-8b:
     label: LLaMA-3.1-8B-Instruct
     model_id: meta-llama/Meta-Llama-3.1-8B-Instruct    # GATED: accept the licence on HF first

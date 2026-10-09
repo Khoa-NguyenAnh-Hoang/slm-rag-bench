@@ -11,8 +11,13 @@ import argparse
 import json
 import math
 from collections import defaultdict
-from itertools import combinations
 from pathlib import Path
+
+def _n(v, spec: str = "") -> str:
+    if v is None:
+        return "n/a"
+    return format(v, spec) if spec else str(v)
+
 
 def _scipy_p(values: list[tuple[float, float]]) -> float | None:
     """Wilcoxon signed-rank p on paired diffs; None when it cannot be computed (all-zero diff)."""
@@ -136,7 +141,11 @@ def main() -> None:
     lines = ["| cell | n | adj acc % | faithfulness | lat p95 ms | ttft p95 ms | api $ | gpu $ | MAP@3 | recall@10 | crag dist |",
              "|---|---|---|---|---|---|---|---|---|---|---|"]
     for r in rows:
-        lines.append("| {cell} | {n} | {adj_acc_%:.1f} | {faithfulness} | {lat_p95_ms:.0f} | {ttft_p95_ms:.1f} | {api_usd:.4f} | {gpu_usd:.4f} | {map@3:.3g} | {recall@10:.3g} | {crag_dist} |".format(**{**r, "faithfulness": r["faithfulness"] if r["faithfulness"] is not None else "n/a"}))
+        lines.append(
+            f"| {r['cell']} | {r['n']} | {_n(r['adj_acc_%'], '.1f')} | {_n(r['faithfulness'])} | "
+            f"{_n(r['lat_p95_ms'], '.0f')} | {_n(r['ttft_p95_ms'], '.1f')} | "
+            f"{_n(r['api_usd'], '.4f')} | {_n(r['gpu_usd'], '.4f')} | "
+            f"{_n(r['map@3'], '.3g')} | {_n(r['recall@10'], '.3g')} | {r['crag_dist']} |")
     print("\n".join(lines))
 
     fronts = {

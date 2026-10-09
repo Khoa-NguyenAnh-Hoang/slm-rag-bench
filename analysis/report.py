@@ -6,10 +6,9 @@ deliverables cannot drift apart. The Pareto fronts render as inline SVG — no p
 from __future__ import annotations
 
 import argparse
-import json
 from pathlib import Path
 
-from analysis.scorecard import load_cells, cell_row, pareto
+from analysis.scorecard import load_cells, cell_row, pareto, _n
 
 
 def _svg_scatter(rows: list[dict], x: str, y: str, title: str, front_cells: set[str]) -> str:
@@ -57,7 +56,8 @@ def main() -> None:
 
     header = "| cell | n | adj acc % | faithfulness | lat p95 ms | api $ | gpu $ |"
     sep = "|---|---|---|---|---|---|---|"
-    body = ["| {cell} | {n} | {adj_acc_%:.1f} | {faithful} | {lat_p95_ms:.0f} | {api_usd:.4f} | {gpu_usd:.4f} |".format(**{**r, "faithful": r["faithfulness"] if r["faithfulness"] is not None else "n/a"})
+    body = [f"| {r['cell']} | {r['n']} | {_n(r['adj_acc_%'], '.1f')} | {_n(r['faithfulness'])} | "
+            f"{_n(r['lat_p95_ms'], '.0f')} | {_n(r['api_usd'], '.4f')} | {_n(r['gpu_usd'], '.4f')} |"
             for r in rows]
     table = "<pre>" + "\n".join([header, sep, *body]) + "</pre>"
 

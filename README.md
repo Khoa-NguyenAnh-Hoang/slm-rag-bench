@@ -47,7 +47,7 @@ The experiment is defined in `configs/experiment.yaml`:
 Requires Python 3.11+ and `uv`.
 
 ```bash
-uv sync --extra serve
+uv sync --frozen --extra serve
 export HF_TOKEN=...    # needed for gated models such as Llama
 ```
 
@@ -55,7 +55,7 @@ The `serve` extra installs vLLM, OpenAI client, instructor, and ragas.
 
 ## Quick check
 
-CPU-only checks, no GPU or model downloads:
+CPU-only checks (no GPU; the first run downloads HotpotQA and the small encoder models):
 
 ```bash
 uv run python -m tools.selfcheck
@@ -163,7 +163,18 @@ Notes/        project plan and results notes
 
 ## Limitations
 
+- **Primary metric is faithfulness** (ragas, scored by the AWQ Mistral judge); adjusted
+  accuracy, hallucination rate and rejection rate are secondary.
 - No cell has produced benchmark numbers yet; the repository currently validates the harness.
+- Eval queries are sampled from the same train split that builds the corpus (self-consistent
+  by design, see `configs/experiment.yaml`), so results are in-domain: they do not
+  generalise out-of-domain, and a small model may answer from parametric memory.
+- The 3×2 grid compares pipelines, not isolated CRAG components: the `crag`-vs-`baseline`
+  delta bundles the corrective decision, knowledge-strip editing, and evaluator latency.
+- Latency is end-to-end as implemented: query 1 includes vLLM server warm-up, `tok_per_s`
+  is effective throughput (its denominator includes retrieval/rerank/CRAG), CRAG scoring
+  is serial batch-1, and p95 is measured under vLLM's default concurrency (not
+  single-stream; `serve.extra_args` can force single-sequence).
 - CRAG evaluation is implemented as a local proxy evaluator. Its Incorrect path needs
   external validity checking before it is interpreted as measured accuracy.
 - API-equivalent costs depend on published provider prices and can differ from real rented
