@@ -27,7 +27,7 @@ import numpy as np
 class QueryRecord:
     query_id: str
     model_name: str
-    latency_ms: float
+    latency_ms: float | None
     prompt_tokens: int
     completion_tokens: int
     stage_latency_ms: dict[str, float] = field(default_factory=dict)
@@ -62,7 +62,7 @@ class MetricsLogger:
     def log_query(
         self,
         query_id: str,
-        latency_ms: float,
+        latency_ms: float | None,
         prompt_tokens: int,
         completion_tokens: int,
         model_name: str,
@@ -75,7 +75,7 @@ class MetricsLogger:
         if gpu_usd is None and gpu_seconds is not None and self.pricing:
             gpu_usd = gpu_seconds * (self.pricing.get("gpu_usd_per_hour", 0.0) / 3600.0)
         tok_per_s = (completion_tokens / (latency_ms / 1000.0)
-                     if latency_ms > 0 and completion_tokens else None)
+                     if latency_ms and latency_ms > 0 and completion_tokens else None)
         rec = QueryRecord(
             query_id=query_id, model_name=model_name, latency_ms=latency_ms,
             prompt_tokens=prompt_tokens, completion_tokens=completion_tokens,

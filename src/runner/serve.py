@@ -193,12 +193,13 @@ def fit_prompt(prompt: str, count, max_prompt_tokens: int) -> str:
 
 
 def serve_generate(client, model: str, prompt: str, max_new_tokens: int,
-                   temperature: float = 0.0) -> tuple[str, int, int, float | None]:
+                   temperature: float = 0.0, seed: int = 42) -> tuple[str, int, int, float | None]:
     """One streaming chat completion -> (text, prompt_tokens, completion_tokens, ttft_ms|None)."""
     t0 = time.perf_counter()
     stream = client.chat.completions.create(
         model=model, messages=[{"role": "user", "content": prompt}],
         temperature=temperature, max_tokens=max_new_tokens, stream=True,
+        seed=seed,
         extra_body={"stream_options": {"include_usage": True}},
     )
     chunks: list[str] = []

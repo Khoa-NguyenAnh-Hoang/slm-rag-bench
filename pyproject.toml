@@ -24,10 +24,10 @@ dependencies = [
 
 [project.optional-dependencies]
 # vLLM serving (AWQ kernels) + instructor + OpenAI client for the judge path.
-serve = ["vllm>=0.6", "instructor>=1.0", "openai>=1.0", "ragas>=0.4.3"]
+serve = ["vllm>=0.6", "instructor>=1.0", "openai>=1.0", "ragas==0.4.3"]
 # Reference-free metrics via the PyPI collections API. 0.4.3 verified against the wheel:
 # metrics.collections + llm_factory(client=) + embeddings.HuggingFaceEmbeddings, and the
 # instructor-only _validate_llm guard the local-judge path depends on. (langchain-huggingface
 # is NOT used; litellm/datasets are not needed — ragas pulls datasets, openai+instructor serve
 # the judge.)
-eval = ["ragas>=0.4.3"]
+eval = ["ragas==0.4.3"]

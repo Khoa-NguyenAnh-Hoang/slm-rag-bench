@@ -306,7 +306,8 @@ def main() -> int:
             return serve_generate(client, server.model,
                                   fit_prompt(prompt, count, prompt_budget),
                                   max_new,
-                                  cfg["generator"].get("temperature", 0.0))
+                                  cfg["generator"].get("temperature", 0.0),
+                                  seed=int(cfg.get("seed", 42)))
 
         results, runs = [], []
         for i, row in enumerate(rows):
@@ -315,6 +316,15 @@ def main() -> int:
             except Exception as e:
                 print(f"[{cid}] QUERY FAILED {i+1}/{len(rows)}: {type(e).__name__}: {e}",
                       flush=True)
+                logger.log_query(
+                    query_id=row.get("question_id", f"q{i}"), latency_ms=None,
+                    prompt_tokens=0, completion_tokens=0,
+                    model_name=cfg["models"][model_key]["model_id"],
+                    stage_latency_ms={}, ttft_ms=None,
+                    action=None, label=UNKNOWN, cell=cid,
+                    error=f"{type(e).__name__}: {e}",
+                    gold_in_index=bool(row.get("gold_ids", [])),
+                )
                 results.append({
                     "query_id": row.get("question_id", f"q{i}"), "question": row["question"],
                     "answer": "", "contexts": [], "retrieved_ids": [],

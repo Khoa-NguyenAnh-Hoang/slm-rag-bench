@@ -68,9 +68,10 @@ def score_run(
     """Score one query. `depth` (how deep retrieval actually went) is recorded in the result so
     the MAP numbers are self-describing and cannot be compared across runs at different depths."""
     gold = list(gold_ids)
-    rel = rel_vector(retrieved_ids[: depth or len(retrieved_ids)], gold)
+    eff_depth = len(retrieved_ids) if depth is None else depth
+    rel = rel_vector(retrieved_ids[:eff_depth], gold)
     total_gold = len(set(gold))
-    out: dict[str, float] = {"depth": float(depth or len(retrieved_ids))}
+    out: dict[str, float] = {"depth": float(eff_depth)}
     for k in ks:
         out[f"map@{k}"] = average_precision_at_k(rel, k)
         out[f"ndcg@{k}"] = ndcg_at_k(rel, k)
