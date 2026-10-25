@@ -47,7 +47,7 @@ from pathlib import Path
 import yaml
 
 from src.pipeline import PIPELINES
-from src.runner.run_cell import MODEL_KEYS, cell_id
+from src.runner.run_cell import cell_id
 
 
 def all_cells(cfg: dict, only_pipeline: str | None) -> list[str]:
@@ -61,7 +61,7 @@ def all_cells(cfg: dict, only_pipeline: str | None) -> list[str]:
     if only_pipeline and only_pipeline not in PIPELINES:
         raise SystemExit(f"unknown pipeline {only_pipeline!r}; have {sorted(PIPELINES)}")
     pipelines = [only_pipeline] if only_pipeline else list(PIPELINES)
-    keys = list(cfg["models"]) or list(MODEL_KEYS)
+    keys = list(cfg["models"])
     return [cell_id(p, m) for p in pipelines for m in keys]
 
 
@@ -135,6 +135,7 @@ def main() -> int:
     cfg = yaml.safe_load(Path(args.config).read_text(encoding="utf-8"))
     out_root = cfg["output_root"]
     cells = all_cells(cfg, args.only)
+    grid = len(cells)          # the full grid, even if --skip-finished trims what runs now
     if args.skip_finished:
         before = len(cells)
         cells = [c for c in cells if not is_finished(out_root, c)]
@@ -170,8 +171,8 @@ def main() -> int:
     print(f"\n{passed}/{len(results)} cells green, {total_min:.0f} GPU-min total")
     if passed and passed == len(results) and cfg["n"] and args.n is None:
         per = total_min / len(results)
-        print(f"~{per:.0f} min/cell at n={cfg['n']} => {len(cells)} cells "
-              f"~= {per * len(cells) / 60:.1f} GPU-h. Price the rental off that.")
+        print(f"~{per:.0f} min/cell at n={cfg['n']} => {grid} cells "
+              f"~= {per * grid / 60:.1f} GPU-h. Price the rental off that.")
     elif crashed:
         print(f"\n{crashed} cell(s) CRASHED rather than failed a gate — read the tracebacks above. "
               "A crash is an environment fault and the numbers in those cells do not exist.")

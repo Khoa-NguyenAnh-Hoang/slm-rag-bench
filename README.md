@@ -158,7 +158,6 @@ analysis/     scorecard and HTML report generation
 tools/        selfcheck, labels export/scoring, CRAG validity helper
 tests/        CPU smoke tests and synthetic fixtures
 results/      committed benchmark artifacts once cells finish
-Notes/        project plan and results notes
 ```
 
 ## Limitations

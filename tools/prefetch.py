@@ -52,9 +52,9 @@ def main() -> int:
     T5Tokenizer.from_pretrained(cfg["crag"]["model"])
     T5ForConditionalGeneration.from_pretrained(cfg["crag"]["model"])
     print(f"crag OK: {cfg['crag']['model']}")
-    from ragas.embeddings import HuggingFaceEmbeddings
+    from src.runner.serve import build_embeddings
 
-    HuggingFaceEmbeddings(model="sentence-transformers/all-mpnet-base-v2", device="cpu")
+    build_embeddings(device="cpu")
     print("embeddings OK")
     print(f"prefetch done: {n} items")
     return 0

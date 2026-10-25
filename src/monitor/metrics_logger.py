@@ -148,8 +148,13 @@ def load_pricing(model_key: str, path: str | Path = "configs/pricing.yaml") -> d
     if model_key not in providers:
         raise KeyError(f"no price card for {model_key!r}; have {sorted(providers)} — "
                        "refusing to report $0.00")
+    rate = providers[model_key].get("api_usd_per_1m") or {}
+    missing = [k for k in ("prompt", "completion") if rate.get(k) is None]
+    if missing:
+        raise KeyError(f"{model_key}: api_usd_per_1m missing {missing} — refusing to price "
+                       "the missing leg at 0")
     return {
-        "api_usd_per_1m": providers[model_key]["api_usd_per_1m"],
+        "api_usd_per_1m": rate,
         "gpu_usd_per_hour": p.get("gpu_usd_per_hour", 0.0),
         "version": p.get("version"),
         "verified": providers[model_key].get("verified", False),

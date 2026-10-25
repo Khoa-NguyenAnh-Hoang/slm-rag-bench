@@ -15,7 +15,7 @@ for cell, p95, faith, adj, action_mix in (
     recs = []
     for i in range(20):
         recs.append({
-            "question_id": f"q{i}", "answer": "a", "latency_ms": lat[i],
+            "query_id": f"q{i}", "answer": "a", "latency_ms": lat[i],
             "ttft_ms": ttft[i], "retrieved_ids": [1], "gold_ids": [1],
             "action": "Correct", "stage_latency_ms": {"retrieve": 3.0, "rerank": 4.0,
                                                        "generate": lat[i] - 7.0},

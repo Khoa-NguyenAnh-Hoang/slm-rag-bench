@@ -162,7 +162,7 @@ def label(answer: str, gold: str) -> str:
     return "Correct" if g in a else "Hallucinated"
 
 
-def adjusted_accuracy(labels: list[str]) -> float | float:
+def adjusted_accuracy(labels: list[str]) -> float | None:
     """Correct / (Correct + Hallucinated) × 100 — abstentions excluded from both sides.
 
     Returns None when nothing was attempted — a model that abstains on everything has no

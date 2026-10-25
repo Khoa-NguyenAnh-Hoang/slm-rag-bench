@@ -2,7 +2,7 @@
 
 The runner does NOT load model weights in-process. This module starts vLLM as a managed
 subprocess, talks to it over HTTP, and stops it reliably — so peak VRAM is the max over roles
-rather than the sum, and the retrieval models (MPNet, MiniLM, flan-t5) can stay CO-RESIDENT with
+rather than the sum, and the retrieval models (MiniLM, flan-t5) can stay CO-RESIDENT with
 the server through the generation pass.
 
 Why a subprocess rather than an inline call: the runner must reliably kill the server even when a
@@ -272,6 +272,7 @@ def build_embeddings(device: str = "cuda"):
     This is the model's ONLY use, which is why pinning the id matters - a bare
     "all-mpnet-base-v2" could resolve to a different revision and put AnswerRelevancy in a
     different embedding space than the one the number was reported under."""
+    ragas_compat()          # must precede the ragas import — see ragas_compat()
     from ragas.embeddings import HuggingFaceEmbeddings
 
     return HuggingFaceEmbeddings(model="sentence-transformers/all-mpnet-base-v2", device=device)

@@ -1,7 +1,7 @@
 """Judge probe: 5 canned samples through the FULL serve + ragas 0.4.3 path.
 
 Run BEFORE any cell pass:
-    uv run python -m src.runner.judge_probe --config configs/experiment.yaml --model-key qwen3-4b
+    uv run python -m src.runner.judge_probe --config configs/experiment.yaml --model-key qwen2.5-1.5b
 
 Two gates, in this order, because they fail for different reasons and cost different amounts:
 
@@ -44,7 +44,7 @@ PROBE_SAMPLES = [
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--config", default="configs/experiment.yaml")
-    ap.add_argument("--model-key", default="qwen3-4b")
+    ap.add_argument("--model-key", default="qwen2.5-1.5b")
     ap.add_argument("--min-pass", type=int, default=None,
                     help="default: judge.probe_min_pass in the config")
     args = ap.parse_args()

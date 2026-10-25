@@ -68,7 +68,7 @@
   },
   "queries": [
     {
-      "question_id": "q0",
+      "query_id": "q0",
       "answer": "a",
       "latency_ms": 960.0,
       "ttft_ms": 48.0,
@@ -90,7 +90,7 @@
       }
     },
     {
-      "question_id": "q1",
+      "query_id": "q1",
       "answer": "a",
       "latency_ms": 1080.0,
       "ttft_ms": 54.0,
@@ -112,7 +112,7 @@
       }
     },
     {
-      "question_id": "q2",
+      "query_id": "q2",
       "answer": "a",
       "latency_ms": 1200.0,
       "ttft_ms": 60.0,
@@ -134,7 +134,7 @@
       }
     },
     {
-      "question_id": "q3",
+      "query_id": "q3",
       "answer": "a",
       "latency_ms": 1320.0,
       "ttft_ms": 66.0,
@@ -156,7 +156,7 @@
       }
     },
     {
-      "question_id": "q4",
+      "query_id": "q4",
       "answer": "a",
       "latency_ms": 960.0,
       "ttft_ms": 48.0,
@@ -178,7 +178,7 @@
       }
     },
     {
-      "question_id": "q5",
+      "query_id": "q5",
       "answer": "a",
       "latency_ms": 1080.0,
       "ttft_ms": 54.0,
@@ -200,7 +200,7 @@
       }
     },
     {
-      "question_id": "q6",
+      "query_id": "q6",
       "answer": "a",
       "latency_ms": 1200.0,
       "ttft_ms": 60.0,
@@ -222,7 +222,7 @@
       }
     },
     {
-      "question_id": "q7",
+      "query_id": "q7",
       "answer": "a",
       "latency_ms": 1320.0,
       "ttft_ms": 66.0,
@@ -244,7 +244,7 @@
       }
     },
     {
-      "question_id": "q8",
+      "query_id": "q8",
       "answer": "a",
       "latency_ms": 960.0,
       "ttft_ms": 48.0,
@@ -266,7 +266,7 @@
       }
     },
     {
-      "question_id": "q9",
+      "query_id": "q9",
       "answer": "a",
       "latency_ms": 1080.0,
       "ttft_ms": 54.0,
@@ -288,7 +288,7 @@
       }
     },
     {
-      "question_id": "q10",
+      "query_id": "q10",
       "answer": "a",
       "latency_ms": 1200.0,
       "ttft_ms": 60.0,
@@ -310,7 +310,7 @@
       }
     },
     {
-      "question_id": "q11",
+      "query_id": "q11",
       "answer": "a",
       "latency_ms": 1320.0,
       "ttft_ms": 66.0,
@@ -332,7 +332,7 @@
       }
     },
     {
-      "question_id": "q12",
+      "query_id": "q12",
       "answer": "a",
       "latency_ms": 960.0,
       "ttft_ms": 48.0,
@@ -354,7 +354,7 @@
       }
     },
     {
-      "question_id": "q13",
+      "query_id": "q13",
       "answer": "a",
       "latency_ms": 1080.0,
       "ttft_ms": 54.0,
@@ -376,7 +376,7 @@
       }
     },
     {
-      "question_id": "q14",
+      "query_id": "q14",
       "answer": "a",
       "latency_ms": 1200.0,
       "ttft_ms": 60.0,
@@ -398,7 +398,7 @@
       }
     },
     {
-      "question_id": "q15",
+      "query_id": "q15",
       "answer": "a",
       "latency_ms": 1320.0,
       "ttft_ms": 66.0,
@@ -420,7 +420,7 @@
       }
     },
     {
-      "question_id": "q16",
+      "query_id": "q16",
       "answer": "a",
       "latency_ms": 960.0,
       "ttft_ms": 48.0,
@@ -442,7 +442,7 @@
       }
     },
     {
-      "question_id": "q17",
+      "query_id": "q17",
       "answer": "a",
       "latency_ms": 1080.0,
       "ttft_ms": 54.0,
@@ -464,7 +464,7 @@
       }
     },
     {
-      "question_id": "q18",
+      "query_id": "q18",
       "answer": "a",
       "latency_ms": 1200.0,
       "ttft_ms": 60.0,
@@ -486,7 +486,7 @@
       }
     },
     {
-      "question_id": "q19",
+      "query_id": "q19",
       "answer": "a",
       "latency_ms": 1320.0,
       "ttft_ms": 66.0,

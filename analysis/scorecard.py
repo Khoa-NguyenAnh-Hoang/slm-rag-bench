@@ -96,12 +96,12 @@ def bh_fdr(p_values: list[float]) -> list[float]:
 
 
 def per_query_correct(card: dict) -> dict[str, int]:
-    return {q.get("question_id", f"i{i}"): int((q.get("extra") or {}).get("label") == "Correct")
+    return {q.get("query_id", f"i{i}"): int((q.get("extra") or {}).get("label") == "Correct")
             for i, q in enumerate(card.get("queries", []))}
 
 
 def per_query_latency(card: dict) -> dict[str, float]:
-    return {q.get("question_id", f"i{i}"): q.get("latency_ms")
+    return {q.get("query_id", f"i{i}"): q.get("latency_ms")
             for i, q in enumerate(card.get("queries", []))
             if q.get("latency_ms") is not None}
 
@@ -110,7 +110,6 @@ def cell_pairs(cells: dict[str, dict]) -> list[tuple[str, str]]:
     """Pair crag <-> baseline within each model: that's the ablation the thesis interprets."""
     by_model: dict[str, set[str]] = defaultdict(set)
     for cid in cells:
-        pipeline, _, model = cid.partition("-")[0], None, None
         # cell ids are '<pipeline>-<model_key>', model_key carries dashes -> split once.
         pipeline, model = cid.split("-", 1)
         by_model[model].add(pipeline)
@@ -150,7 +149,7 @@ def main() -> None:
 
     fronts = {
         "faithfulness_vs_latency": pareto(rows, "lat_p95_ms", "faithfulness", x_min=True, y_max=True),
-        "faithfulness_vs_total_cost": pareto(rows, "api_usd", "faithfulness", x_min=True, y_max=True),
+        "faithfulness_vs_gpu_cost": pareto(rows, "gpu_usd", "faithfulness", x_min=True, y_max=True),
     }
     print("\nPareto fronts:")
     for name, front in fronts.items():

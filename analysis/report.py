@@ -48,11 +48,11 @@ def main() -> None:
 
     rows = [cell_row(c) for c in load_cells(Path(a.results)).values()]
     f1 = {r["cell"] for r in pareto(rows, "lat_p95_ms", "faithfulness", x_min=True, y_max=True)}
-    f2 = {r["cell"] for r in pareto(rows, "api_usd", "faithfulness", x_min=True, y_max=True)}
+    f2 = {r["cell"] for r in pareto(rows, "gpu_usd", "faithfulness", x_min=True, y_max=True)}
     svg1 = _svg_scatter(rows, "lat_p95_ms", "faithfulness",
                         "faithfulness vs p95 latency (green = Pareto)", f1)
-    svg2 = _svg_scatter(rows, "api_usd", "faithfulness",
-                        "faithfulness vs api-equivalent $ (green = Pareto)", f2)
+    svg2 = _svg_scatter(rows, "gpu_usd", "faithfulness",
+                        "faithfulness vs GPU-amortised $ (green = Pareto)", f2)
 
     header = "| cell | n | adj acc % | faithfulness | lat p95 ms | api $ | gpu $ |"
     sep = "|---|---|---|---|---|---|---|"

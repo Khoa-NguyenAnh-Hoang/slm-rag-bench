@@ -37,9 +37,6 @@ from src.monitor.metrics_logger import MetricsLogger, QueryRecord, load_pricing
 from src.monitor.retrieval_metrics import aggregate, score_run
 from src.pipeline import PIPELINES, adjusted_accuracy, answer_query, label
 
-MODEL_KEYS = ("qwen2.5-1.5b", "qwen3-4b", "llama3.1-8b")
-
-
 def cell_id(pipeline: str, model_key: str) -> str:
     return f"{pipeline}-{model_key}"
 
@@ -54,8 +51,8 @@ def resolve(cfg: dict, only: str) -> tuple[str, str]:
         raise SystemExit(f"unknown pipeline in {only!r}; have {sorted(PIPELINES)}")
     pipeline = max(candidates, key=len)
     model_key = only[len(pipeline) + 1:]
-    if model_key not in MODEL_KEYS:
-        raise SystemExit(f"unknown model {model_key!r} in {only!r}; have {list(MODEL_KEYS)}")
+    if model_key not in cfg["models"]:
+        raise SystemExit(f"unknown model {model_key!r} in {only!r}; have {list(cfg['models'])}")
     return pipeline, model_key
 
 
@@ -246,7 +243,9 @@ def main() -> int:
     texts, titles = build_corpus(split=cfg["corpus"]["split"], max_paras=cap)
     # gold doc_ids, by title. The corpus dedups on (title, text), so one title can still own
     # several doc_ids when the same page appears with different text across questions. Keep the
-    # union: a hit on ANY of them is a hit on the supporting paragraph.
+    # union: a hit on ANY of them is a hit on the supporting paragraph. Consequence for the
+    # metrics: recall's denominator counts every variant, so a duplicated title counts as 2
+    # golds — the same convention in every cell, which is what cross-cell comparability needs.
     title_to_ids: dict[str, list[int]] = collections.defaultdict(list)
     for i, t in enumerate(titles):
         title_to_ids[t].append(i)
@@ -277,6 +276,9 @@ def main() -> int:
     print(f"[{cid}] manifest written -> {out_dir/'manifest.json'}", flush=True)
 
     # ---- retrieval + correction (co-resident with the server from here on) ----
+    # The wall clock starts HERE, before the index build: GPU cost is amortised over the whole
+    # cell, and every query genuinely paid for the index build too.
+    t_wall = time.perf_counter()
     from src.retrieval.retriever import Retriever
 
     hy = Retriever(texts, beta_rerank=cfg["retrieval"]["beta_rerank"],
@@ -295,7 +297,6 @@ def main() -> int:
                                   serve_generate, server_from_config, serving, token_counter)
 
     logger = MetricsLogger(out_dir / "queries.jsonl", pricing=pricing)
-    t_wall = time.perf_counter()
     with serving(server_from_config(cfg, "generator")) as server:
         client = serve_client(server)
         max_new = int(cfg["generator"]["max_new_tokens"])
@@ -314,27 +315,32 @@ def main() -> int:
             try:
                 res = answer_query(pipeline, hy, crag, generate, row)
             except Exception as e:
-                print(f"[{cid}] QUERY FAILED {i+1}/{len(rows)}: {type(e).__name__}: {e}",
-                      flush=True)
-                logger.log_query(
-                    query_id=row.get("question_id", f"q{i}"), latency_ms=None,
-                    prompt_tokens=0, completion_tokens=0,
-                    model_name=cfg["models"][model_key]["model_id"],
-                    stage_latency_ms={}, ttft_ms=None,
-                    action=None, label=UNKNOWN, cell=cid,
-                    error=f"{type(e).__name__}: {e}",
-                    gold_in_index=bool(row.get("gold_ids", [])),
-                )
-                results.append({
-                    "query_id": row.get("question_id", f"q{i}"), "question": row["question"],
-                    "answer": "", "contexts": [], "retrieved_ids": [],
-                    "gold_ids": row.get("gold_ids", []), "latency_ms": None,
-                    "stage_latency_ms": {}, "action": None, "crag": None,
-                    "prompt_tokens": 0, "completion_tokens": 0, "ttft_ms": None,
-                    "extra": {"error": f"{type(e).__name__}: {e}"}})
-                runs.append(score_run([], row.get("gold_ids", []),
-                                      ks=cfg["retrieval"]["metrics_ks"], depth=0))
-                continue
+                print(f"[{cid}] QUERY FAILED {i+1}/{len(rows)}: {type(e).__name__}: {e}"
+                      f" — one retry", flush=True)
+                try:
+                    res = answer_query(pipeline, hy, crag, generate, row)
+                except Exception as e:
+                    print(f"[{cid}] QUERY FAILED {i+1}/{len(rows)}: {type(e).__name__}: {e}",
+                          flush=True)
+                    logger.log_query(
+                        query_id=row.get("question_id", f"q{i}"), latency_ms=None,
+                        prompt_tokens=0, completion_tokens=0,
+                        model_name=cfg["models"][model_key]["model_id"],
+                        stage_latency_ms={}, ttft_ms=None,
+                        action=None, label=UNKNOWN, cell=cid,
+                        error=f"{type(e).__name__}: {e}",
+                        gold_in_index=bool(row.get("gold_ids", [])),
+                    )
+                    results.append({
+                        "query_id": row.get("question_id", f"q{i}"), "question": row["question"],
+                        "answer": "", "contexts": [], "retrieved_ids": [],
+                        "gold_ids": row.get("gold_ids", []), "latency_ms": None,
+                        "stage_latency_ms": {}, "action": None, "crag": None,
+                        "prompt_tokens": 0, "completion_tokens": 0, "ttft_ms": None,
+                        "extra": {"error": f"{type(e).__name__}: {e}"}})
+                    runs.append(score_run([], row.get("gold_ids", []),
+                                          ks=cfg["retrieval"]["metrics_ks"], depth=0))
+                    continue
             # Label BEFORE logging so queries.jsonl carries it — the per-query record is the
             # committed raw data, and a label that only exists in the scorecard aggregate cannot
             # be re-derived from it once a model judge replaces these labels.
@@ -473,7 +479,6 @@ if __name__ == "__main__":
             assert {"model_id", "serve_id"} <= m.keys(), f"model {key}: need model_id + serve_id"
         assert cfg["eval_split"] == cfg["corpus"]["split"], (
             "locked decision 6: eval and corpus must share a split, or gold is outside the index")
-        assert len(cfg["models"]) == 3, f"expected 3 models, got {sorted(cfg['models'])}"
         # The config must not carry retrieval knobs the code no longer reads. A key that survives
         # in the YAML and is read by nothing is worse than a missing key, because editing it looks
         # like it changes the run.
