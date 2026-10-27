@@ -1,0 +1,25 @@
+% ============================================================
+%  tables/tab_paired.tex
+%  Placeholder paired crag vs baseline tests.
+% ============================================================
+
+\begin{table}[h]
+\centering
+\caption{Paired crag vs.\ baseline tests within each model (placeholder).}
+\label{tab:paired}
+\begin{tabular}{llllll}
+\toprule
+\textbf{Model} & \textbf{Metric} & \textbf{Test} & \textbf{p} & \textbf{q\_FDR} & \textbf{Interpretation} \\
+\midrule
+Qwen2.5-1.5B & Correctness & McNemar exact & -- & -- & -- \\
+Qwen2.5-1.5B & Latency & Wilcoxon & -- & -- & -- \\
+Qwen3-4B & Correctness & McNemar exact & -- & -- & -- \\
+Qwen3-4B & Latency & Wilcoxon & -- & -- & -- \\
+LLaMA-3.1-8B & Correctness & McNemar exact & -- & -- & -- \\
+LLaMA-3.1-8B & Latency & Wilcoxon & -- & -- & -- \\
+\bottomrule
+\end{tabular}
+
+\caption*{BH-FDR adjusted across all six comparisons; query-level
+pairing shares the same $n=300$ queries per model.}
+\end{table}

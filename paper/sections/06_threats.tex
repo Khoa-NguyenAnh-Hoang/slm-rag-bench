@@ -1,0 +1,58 @@
+% ============================================================
+%  sections/06_threats.tex
+%  6. Threats to Validity (~0.5 page)
+% ============================================================
+
+\section{Threats to Validity}
+\label{sec:threats}
+
+\textbf{T1 Construct validity (what we measure).}
+Faithfulness is computed by an LLM judge rather than by human annotators
+on every answer, so it inherits judge sensitivity---prompt phrasing,
+temperature, and the underlying model can all move the
+score~\cite{es2023ragas,murugaraj2025ragvue}. The 50-sample human-label
+agreement study (Section~\ref{sec:results}) calibrates this risk.
+Faithfulness can also diverge from factual correctness: an answer may be
+supported by retrieved evidence yet factually wrong, or factually right
+yet unsupported by the retrieved context~\cite{murugaraj2025ragvue}.
+API-equivalent cost is also a proxy: published provider prices vary by up
+to an order of magnitude for the same model, so the GPU-amortised number
+is the primary cost result~\cite{elkiran2026empirical}.
+
+\textbf{T2 Internal validity (fairness of the comparison).}
+Four risks were addressed before the runs: (i) self-judge---the judge is
+now a separate server, enforced by a hard gate; (ii) CRAG proxy
+correctness---the flan-t5-base evaluator is not discriminative on
+Incorrect passages, so its action distribution is reported with an
+explicit caveat rather than treated as ground truth; (iii) data
+leakage---eval and corpus are drawn from the same train split by design
+(in-domain by construction), so retrieval metrics are not confounded by
+missing gold paragraphs; (iv) LLM-as-judge instability---judge prompt and
+decoding settings are fixed across cells, and the limitation is reported
+rather than hidden~\cite{murugaraj2025ragvue}.
+
+\textbf{T3 External validity (what generalises).}
+Results are single-corpus, English-only, single-split (HotpotQA
+distractor train), no dense retriever arm, no live web search, and
+batch-1 serving under vLLM defaults. HotpotQA is Wikipedia-centric,
+which limits transfer to multilingual, domain-specific, and time
+sensitive production corpora~\cite{wu2024survey,elkiran2026empirical,zeng2025rare,li2025biomedical}.
+Findings do not generalise out-of-domain, to other languages, or to
+high-concurrency serving. A small model may also answer from parametric
+memory rather than retrieved context.
+
+\textbf{T4 Statistical validity (significance claims).}
+$n=300$ per cell gives roughly $\pm 2.9$ percentage points standard
+error at a 50\% rate. Paired tests plus Benjamini--Hochberg adjustment
+limit false discoveries across the $3 \times 2$ comparisons; effect sizes
+should accompany any claim of significance rather than $p$-values alone.
+
+\textbf{T5 System validity (pipeline-specific).}
+The fixed chunking strategy, retrieval depth (30 candidates $\rightarrow$
+top 10), and embedding assumption are design choices, not neutral
+defaults; different depths or chunk sizes can shift both retrieval and
+downstream correctness~\cite{elkiran2026empirical}. The local CRAG
+proxy also omits the published web-search rescue path and replaces the
+trained evaluator with a smaller derivative model, so the crag cells are
+a derivative corrective design rather than a full CRAG
+reproduction~\cite{yan2024crag}.

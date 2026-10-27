@@ -1,0 +1,122 @@
+% ============================================================
+%  sections/04_methodology.tex
+%  4. Methodology (~1 page)
+% ============================================================
+
+\section{Methodology}
+\label{sec:method}
+
+\textbf{Metrics.}
+Each cell reports the following numbers, measured end-to-end rather than
+assembled from stage timings (see Rule R1 below). Retrieval, answer
+quality, and grounding are evaluated separately~\cite{murugaraj2025ragvue,mortaheb2025ragcheck}.
+
+\begin{itemize}
+    \item \textbf{Retrieval quality}---MAP@$k$, NDCG@$k$, Recall@$k$,
+          MRR, and Coverage, recorded at the actual retrieval depth
+          (queries at different depths are not comparable)~\cite{rasheed2025empirical}.
+    \item \textbf{Adjusted accuracy}---precision over attempted answers
+          only:
+          \[
+          \text{AdjAcc} = \frac{\text{Correct}}{\text{Correct} +
+          \text{Hallucinated}} \times 100\%
+          \]
+          This follows Mala et al.\ and rewards abstention when context
+          is insufficient~\cite{mala2026faithfulness}.
+    \item \textbf{Hallucination rate} and \textbf{rejection rate}---the
+          share of answers judged unsupported or refused
+          (\emph{Refusal}), respectively. Abstention and rejection are
+          reported separately because robustness work shows RAG systems
+          often fail on negative rejection and risk control~\cite{chen2023rgb,chen2024counterfactual}.
+    \item \textbf{Faithfulness}---RAGAS-style generator groundedness:
+          an LLM decomposes the answer into statements and judges each
+          against the retrieved context; faithfulness is the share of
+          supported statements~\cite{es2023ragas}. Faithfulness here
+          means support by retrieved evidence, not factual truth; the
+          two can diverge~\cite{murugaraj2025ragvue}. Statements and
+          verdicts are produced by the fixed judge model
+          (Section~\ref{sec:method}).
+    \item \textbf{Latency}---mean and P95 end-to-end latency per query
+          (seconds), plus mean TTFT (time to first token), plus tokens
+          per second. P95 tail matters because a few slow queries
+          dominate user-visible latency in a served system.
+    \item \textbf{Cost}---two numbers per cell:
+          \begin{itemize}
+              \item API-equivalent cost from prompt/completion tokens
+                    and a published provider price table (provider and
+                    verification date recorded);
+              \item GPU-amortised cost from measured wall-clock and an
+                    hourly rate.
+          \end{itemize}
+          Neither number is allowed to default to $0.0$; an unavailable
+          measurement is recorded as \texttt{None} rather than zero~\cite{elkiran2026empirical}.
+\end{itemize}
+
+\begin{table}[h]
+\centering
+\caption{Metric definitions and where each number originates.}
+\label{tab:metrics}
+\begin{tabular}{lll}
+\toprule
+\textbf{Metric} & \textbf{Definition} & \textbf{Source} \\
+\midrule
+MAP@$k$ / NDCG@$k$ / Recall@$k$ & Depth-recorded retrieval quality & metrics\_logger \\
+Adjusted accuracy & Correct / (Correct + Hallucinated) & deterministic labels \\
+Hallucination / rejection rate & Unsupported / refused share & labels \\
+Faithfulness & Supported statements / all statements & judge (ragas) \\
+Latency mean / P95 & End-to-end per-query timer & MetricsLogger \\
+TTFT & Time to first streaming token & serve layer \\
+Cost & API-equivalent + GPU-amortised & pricing.yaml + wall clock \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\textbf{Measurement contract (enforced).}
+The harness runs seven rules and fails a cell that breaks any of them:
+
+\begin{enumerate}
+    \item Latency is measured with one outer timer per query, never
+          summed from stage timings.
+    \item An unavailable measurement is \texttt{None}, never
+          \texttt{0.0}.
+    \item A missing reference answer is \texttt{Unknown}, never a
+          fabricated label.
+    \item Unknown keys, missing usage blocks, or missing config raise;
+          there is no silent fallback.
+    \item Scores carry their retrieval depth; costs carry pricing
+          version and verification metadata.
+    \item The cell manifest is written before any model is loaded.
+    \item Every value is read from \texttt{configs/experiment.yaml} at
+          exactly one place.
+\end{enumerate}
+
+A source-tree scanner greps the code for fabricated-zero patterns
+(docstrings blanked first, so prose about the rules does not trip it),
+and four of the rules run as hard gates inside each cell.
+
+\textbf{Judge protocol.}
+RAGAS-style faithfulness and relevance are produced by the judge model,
+not by the generator (Section~\ref{sec:design}). Both serve
+identities---generator and judge---are written into every scorecard, and
+a hard gate enforces \emph{judge $\neq$ generator}. The judge runs
+streaming \emph{after} the generator server has been stopped, so GPU
+memory can be reused. LLM judges are useful but prompt-sensitive and
+unstable~\cite{murugaraj2025ragvue}; we therefore use one judge
+consistently across all cells and report this as a limitation
+(Section~\ref{sec:threats}).
+
+\textbf{Statistical analysis plan.}
+The comparison of interest is crag vs.\ baseline within each model
+(paired by query). We plan:
+
+\begin{itemize}
+    \item McNemar's exact test on per-query correctness
+          (discordant counts: crag correct / baseline wrong vs.\ reverse).
+    \item Wilcoxon signed-rank test on per-query latency differences.
+    \item Benjamini--Hochberg false-discovery-rate adjustment across all
+          reported model $\times$ pipeline comparisons.
+\end{itemize}
+
+All three tests are implemented in \texttt{analysis/scorecard.py} and run
+against committed scorecards; they are scaffolded here but their results
+are filled in after the matrix runs (Section~\ref{sec:results}).

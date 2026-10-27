@@ -1,0 +1,91 @@
+% ============================================================
+%  sections/03_benchmark_design.tex
+%  3. Benchmark design (~0.75 page)
+% ============================================================
+
+\section{Benchmark design}
+\label{sec:design}
+
+\textbf{Retrieval is fixed, and that is the point.}
+The benchmark answers ``which small model should I pick under a fixed
+retrieval policy?'', so retrieval must not vary between cells---otherwise
+two cells can differ by more than their model, which is exactly the
+confound that makes quality-only rankings misleading~\cite{rasheed2025empirical}.
+Component studies show that retriever choice dominates much of the
+variance in downstream quality, while rerankers can still shift
+correctness~\cite{elkiran2026empirical}. Every cell therefore uses the
+same fixed retriever:
+
+\begin{enumerate}
+    \item BM25 sparse candidate pool via \texttt{bm25s} (depth 30),
+    \item MiniLM-L6 cross-encoder reranker over the 30 candidates,
+          returning the top 10.
+\end{enumerate}
+
+There is no dense retrieval arm. On the full 483,696-paragraph HotpotQA
+distractor corpus, the sparse pool already holds at least one gold
+paragraph $98.00\%$ of the time, and the reranked top-10 reaches
+$97.67\%$, so even a perfect dense fusion could add at most $0.33$
+percentage points of recall@10---far too little to justify varying the
+retriever between cells. The reranker runs in every cell and is not an
+experimental axis. This design isolates \textbf{generator and
+corrective-stage effects} under a constant retrieval policy; it is not a
+claim about the globally best RAG architecture~\cite{elkiran2026empirical}.
+
+\textbf{Matrix.} Three small open generator models $\times$ two pipelines
+(gives 6 cells, Table~\ref{tab:matrix}): \texttt{Qwen2.5-1.5B-Instruct},
+\texttt{Qwen3-4B-Instruct-2507}, and \texttt{LLaMA-3.1-8B-Instruct}
+(Llama requires an accepted licence). The pipelines are:
+
+\begin{itemize}
+    \item \texttt{baseline}: retrieved context is passed directly to the
+          generator.
+    \item \texttt{crag}: each retrieved context is scored by a local
+          corrective evaluator (a \texttt{flan-t5-base} proxy for CRAG's
+          trained 0.77B T5-large evaluator) and one of
+          \texttt{Correct}/\texttt{Incorrect}/\texttt{Ambiguous} is
+          triggered. On \texttt{Correct} and \texttt{Ambiguous}, context
+          is refined with decompose-then-recompose strip filtering; on
+          \texttt{Incorrect}, context is emptied and the model must
+          abstain or answer from parametric memory---there is no live
+          web-search fallback, so an \texttt{Incorrect} action is treated
+          as a measured abstention rather than rescued accuracy. This is
+          a derivative corrective design, not a full CRAG
+          reproduction~\cite{yan2024crag}.
+\end{itemize}
+
+\textbf{Judge.} Faithfulness and relevance are scored by a separate judge
+model (\texttt{Mistral-7B-Instruct-v0.3}, served as an AWQ checkpoint) on
+its own vLLM endpoint, never concurrently with the generator. The server
+identities of both judge and generator are recorded in every scorecard; a
+gate enforces \emph{judge $\neq$ generator} so no cell can be
+self-scored by the model that wrote its answer (Section~\ref{sec:method}).
+
+\textbf{Data.} HotpotQA distractor subset, sampled once at $n=300$
+queries with seed 42 from the train split that also builds the
+corpus---90,447 rows yielding 483,696 paragraphs after title--text
+deduplication. Eval and corpus come from the same split by design, so
+every query's gold paragraphs are present in the index (this makes the
+bench in-domain rather than out-of-domain; see Threat T3,
+Section~\ref{sec:threats}). HotpotQA is a useful multi-hop benchmark but
+is Wikipedia-centric and less reflective of proprietary or dynamic
+production corpora~\cite{wu2024survey,mala2026faithfulness}; Section~\ref{sec:threats}
+discusses this limitation.
+
+\begin{table}[h]
+\centering
+\caption{Experiment matrix: 3 small models $\times$ 2 pipelines, fixed retriever.}
+\label{tab:matrix}
+\begin{tabular}{lllll}
+\toprule
+\textbf{Cell} & \textbf{Model} & \textbf{Pipeline} & \textbf{Corrective stage} & \textbf{Judge} \\
+\midrule
+baseline--qwen2.5-1.5b & Qwen2.5-1.5B-Instruct & baseline & none & Mistral-7B-AWQ \\
+crag--qwen2.5-1.5b & Qwen2.5-1.5B-Instruct & crag & flan-t5-base proxy & Mistral-7B-AWQ \\
+baseline--qwen3-4b & Qwen3-4B-Instruct-2507 & baseline & none & Mistral-7B-AWQ \\
+crag--qwen3-4b & Qwen3-4B-Instruct-2507 & crag & flan-t5-base proxy & Mistral-7B-AWQ \\
+baseline--llama3.1-8b & LLaMA-3.1-8B-Instruct & baseline & none & Mistral-7B-AWQ \\
+crag--llama3.1-8b & LLaMA-3.1-8B-Instruct & crag & flan-t5-base proxy & Mistral-7B-AWQ \\
+\bottomrule
+\end{tabular}
+\end{table}

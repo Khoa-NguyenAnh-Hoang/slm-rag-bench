@@ -1,0 +1,88 @@
+% ============================================================
+%  main.tex — Springer LNCS paper
+%  Cost, Latency, and Faithfulness: A Fixed-Retriever Benchmark
+%  for Small-Model RAG
+%
+%  Compile: pdflatex -> bibtex -> pdflatex -> pdflatex
+%  (Overleaf: upload the whole paper/ directory)
+% ============================================================
+\documentclass[runningheads]{llncs}
+
+% ---------- Packages ----------
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[english]{babel}
+\usepackage{graphicx}                    % \includegraphics
+\usepackage{subcaption}                  % subfigures
+\usepackage{booktabs}                    % \toprule / \midrule / \bottomrule
+\usepackage{multirow}                    % merged table cells
+\usepackage{amsmath}                     % math
+\usepackage{amssymb}
+\usepackage{url}
+% Bibliography: classic BibTeX with splncs04.bst (ships with llncs.cls)
+
+% ---------- Graphics path ----------
+\graphicspath{{figures/}}
+
+% ---------- Scaffolding helpers ----------
+% \TODO marks prose that still needs a real result or a decision.
+% Numbers that depend on a GPU run are written as `--` in tables.
+\newcommand{\TODO}[1]{\textbf{[TODO: #1]}}
+
+% ============================================================
+\begin{document}
+
+% ---------- Title & Authors ----------
+\title{Cost, Latency, and Faithfulness:\\
+A Fixed-Retriever Benchmark for\\
+Small-Model RAG}
+
+\titlerunning{A Fixed-Retriever Benchmark for Small-Model RAG}
+
+\author{
+    \textbf{Hoàng Nguyễn Anh Khoa}\textsuperscript{1}\\
+    \textsuperscript{1}University of Information Technology\\
+    Vietnam National University Ho Chi Minh City, Vietnam\\
+    \texttt{23520736@gm.uit.edu.vn}
+}
+
+\authorrunning{H. N. A. Khoa}
+
+\institute{University of Information Technology,\\
+Vietnam National University Ho Chi Minh City, Vietnam\\
+\email{23520736@gm.uit.edu.vn}}
+
+\maketitle
+
+% ---------- Abstract ----------
+\input{sections/00_abstract}
+
+% ---------- 1. Introduction ----------
+\input{sections/01_introduction}
+
+% ---------- 2. Related Work ----------
+\input{sections/02_related_work}
+
+% ---------- 3. Benchmark Design ----------
+\input{sections/03_benchmark_design}
+
+% ---------- 4. Methodology ----------
+\input{sections/04_methodology}
+
+% ---------- 5. Results & Discussion ----------
+\input{sections/05_results}
+
+% ---------- 6. Threats to Validity ----------
+\input{sections/06_threats}
+
+% ---------- 7. Reproducibility ----------
+\input{sections/07_reproducibility}
+
+% ---------- 8. Conclusion ----------
+\input{sections/08_conclusion}
+
+% ---------- References ----------
+\bibliographystyle{splncs04}
+\bibliography{sections/references}
+
+\end{document}

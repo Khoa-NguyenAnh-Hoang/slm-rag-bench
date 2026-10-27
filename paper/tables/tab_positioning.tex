@@ -1,0 +1,27 @@
+% ============================================================
+%  tables/tab_positioning.tex
+%  Positioning table for Section 2
+% ============================================================
+
+\begin{table}[h]
+\centering
+\caption{Positioning of this benchmark relative to prior work.}
+\label{tab:positioning}
+\begin{tabular}{llllp{2.6cm}}
+\toprule
+\textbf{Work} & \textbf{Models} & \textbf{Retrieval axis} & \textbf{Core metrics} & \textbf{Missing} \\
+\midrule
+RAGAS~\cite{es2023ragas} & Hosted LLMs & Fixed (developer-chosen) & Faithfulness, relevance & Latency, cost \\
+ARES~\cite{saadfalcon2023ares} & Hosted/SLM & Fixed & Trained judges, domain shift & Latency, cost \\
+eRAG~\cite{salemi2024erag} & Hosted/SLM & Fixed & Retrieval quality correlation & Cost, SLMs \\
+RAGVUE~\cite{murugaraj2025ragvue} & Hosted/SLM & Fixed & Claim-level diagnostics & Latency, cost \\
+RARE~\cite{zeng2025rare} & Hosted/SLM & Fixed & Perturbation robustness & Cost \\
+RGB~\cite{chen2023rgb} & LLMs (EN/ZH) & Fixed per setup & Accuracy, rejection rate & Cost, small models \\
+CRAG~\cite{yan2024crag} & Off-the-shelf LLMs & Fixed per setup & Accuracy gains & Latency, cost \\
+Mala et al.~\cite{mala2026faithfulness} & 2--8B open models & Varied (sparse/dense/hybrid) & Accuracy, hallucination, rejection & Latency, cost \\
+EvaRAG~\cite{elkiran2026empirical} & Hosted models & Varied across 162 configs & Correctness, cost, latency & Faithfulness on SLMs \\
+Rasheed et al.~\cite{rasheed2025empirical} & Hosted models & Varied & Correctness, cost, latency & SLM faithfulness \\
+This work & Qwen2.5-1.5B / Qwen3-4B / LLaMA-3.1-8B & \textbf{Fixed (bm25s $\to$ MiniLM)} & \textbf{Faithfulness + latency + cost + abstention} & --- \\
+\bottomrule
+\end{tabular}
+\end{table}

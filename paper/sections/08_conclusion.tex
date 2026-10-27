@@ -1,0 +1,38 @@
+% ============================================================
+%  sections/08_conclusion.tex
+%  8. Conclusion & Future Work (~0.5 page)
+% ============================================================
+
+\section{Conclusion}
+\label{sec:conclusion}
+
+\TODO{One-paragraph conclusion once the matrix has run: which cell
+dominates the faithfulness--cost--latency frontier, whether crag is
+worth its evaluator latency, and the model recommendation under a fixed
+budget.}
+
+This paper offers a \textbf{controlled, reproducible benchmark} for
+comparing small-model RAG under joint quality, faithfulness, latency,
+and cost reporting. It does not claim to establish a new standard or to
+settle all production RAG selection questions; broader questions of
+domain transfer, dynamic corpora, and retrieval-policy adaptation remain
+open~\cite{brown2025systematic,wu2024survey,sharma2025survey,li2025biomedical}.
+
+\textbf{Limitations.}
+The grid compares whole pipelines rather than isolating CRAG
+components; the corrective stage bundles evaluation, strip editing, and
+evaluator latency. The retriever is fixed, so no claim is made about
+dense vs.\ sparse retrieval. Costs depend on provider pricing at a
+single verification date, and the data is English-only, single-split
+HotpotQA distractor. The corrective pipeline is a derivative design, not
+a full CRAG reproduction.
+
+\textbf{Future work.}
+Add a dense retrieval arm to quantify its recall ceiling; try
+alternative judges to bound judge sensitivity; extend to multilingual
+small-model subsets; evaluate batched serving rather than batch-1;
+sweep AWQ vs.\ fp16 serving settings; and test on time-sensitive or
+domain-specific corpora to probe external validity~\cite{zeng2025rare,li2025biomedical,almohaimeed2026arabic}.
+
+\TODO{Add Acknowledgements, Funding, and Ethics statements if required
+by the venue.}

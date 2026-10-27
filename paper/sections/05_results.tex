@@ -1,0 +1,103 @@
+% ============================================================
+%  sections/05_results.tex
+%  5. Results & Discussion (~1.25 pages)
+% ============================================================
+
+\section{Results \& Discussion}
+\label{sec:results}
+
+\TODO{Replace every ``--'' value in this section once the matrix has run.
+All numbers here come from committed \texttt{results/*/scorecard.json}.}
+
+\subsection{Scorecard}
+
+Table~\ref{tab:scorecard} gives the cross-cell scorecard. Each row is one
+cell of the $3 \times 2$ matrix, evaluated on $n=300$ queries. We present
+results as a \textbf{frontier comparison} rather than a single scalar
+winner, because recent work shows that no single RAG configuration
+dominates all quality and efficiency axes~\cite{sharma2025survey,brown2025systematic}.
+
+\input{tables/tab_scorecard}
+
+\TODO{Reading guide once numbers exist: highlight which cell minimises
+cost per faithfulness point, which minimises P95 latency, and whether
+crag beats baseline within each model. Do not lead with a single ``best''
+cell.}
+
+\subsection{Paired crag vs.\ baseline tests}
+
+Because each model pair shares the same queries, we test the crag effect
+within models. Table~\ref{tab:paired} reports McNemar's exact test for
+correctness and Wilcoxon signed-rank for latency, with Benjamini--Hochberg
+false-discovery-rate adjustment across all comparisons.
+
+\input{tables/tab_paired}
+
+\TODO{Interpretation template: significance means the corrective stage
+reliably shifts a given axis; non-significance means the added evaluator
+latency is not justified by the measured gain. Interpret gains
+cautiously: corrective pipelines can improve citation faithfulness even
+when fluency gains are modest~\cite{michaels2026dsgt}.}
+
+\subsection{Pareto fronts}
+
+Figures~\ref{fig:pareto_latency} and \ref{fig:pareto_cost} plot
+faithfulness against P95 latency and against total cost respectively.
+Cells on the front are candidates for ``best deployable model'' under
+different budget constraints.
+
+\begin{figure}[h]
+\centering
+\TODO{Figure: faithfulness vs.\ P95 latency (6 cells, labelled).}
+\includegraphics[width=0.75\textwidth]{pareto_latency}
+\caption{Faithfulness vs.\ end-to-end P95 latency.}
+\label{fig:pareto_latency}
+\end{figure}
+
+\begin{figure}[h]
+\centering
+\TODO{Figure: faithfulness vs.\ total cost per query (6 cells, labelled).}
+\includegraphics[width=0.75\textwidth]{pareto_cost}
+\caption{Faithfulness vs.\ cost per query.}
+\label{fig:pareto_cost}
+\end{figure}
+
+\subsection{Human-label agreement}
+
+\TODO{Table: agreement percentage and Cohen's kappa from
+\texttt{src.monitor.labels score} on B2's 50 hand labels
+(\emph{Factual / Hallucination / Refusal}).}
+
+\input{tables/tab_human}
+
+\subsection{CRAG proxy validity}
+
+\TODO{Table: proxy/action agreement against vendored CRAG reference
+labels for popqa, bio, pubqa, arc\_challenge, from
+\texttt{tools/crag\_validity.py}. The smoke result already shows the
+proxy is non-discriminative on negatives (0\% agreement on Incorrect).
+Do not interpret the Incorrect path as measured accuracy.}
+
+\input{tables/tab_crag_validity}
+
+\subsection{Deviation log}
+
+Any departure from the plan is recorded with its consequence:
+
+\input{tables/tab_deviations}
+
+\TODO{Current deviations: (1) self-judge in Phase A, closed by giving
+the judge its own server; (2) flan-t5-base proxy non-discriminative on
+CRAG Incorrect negatives; interpret with caution.}
+
+\subsection{Discussion}
+
+HotpotQA-based findings may not transfer to multilingual,
+domain-specific, or time-sensitive corpora~\cite{elkiran2026empirical,zeng2025rare,li2025biomedical}.
+Robustness under noise, contradiction, and multi-hop integration remains
+a broader open problem beyond this benchmark~\cite{chen2023rgb,zeng2025rare,li2025biomedical}.
+The contribution here is a reproducible comparison harness, not a
+definitive answer to all production RAG selection questions~\cite{wu2024survey,sharma2025survey}.
+Where possible, we distinguish retrieval-supported failures from
+generation failures, following disentangling and diagnostic evaluation
+work~\cite{mala2026faithfulness,murugaraj2025ragvue}.

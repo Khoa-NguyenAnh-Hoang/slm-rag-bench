@@ -1,0 +1,34 @@
+% ============================================================
+%  sections/00_abstract.tex
+%  Abstract (~200 words) + keywords
+% ============================================================
+
+\begin{abstract}
+Small open-weight language models are attractive for retrieval-augmented
+generation (RAG) because they are deployable under tighter cost and
+hardware budgets, but prior work shows that RAG systems still struggle
+with faithfulness, negative rejection, and noisy evidence handling,
+especially in small-to-mid model settings~\cite{mala2026faithfulness,chen2023rgb,zeng2025rare}.
+Existing evaluations often emphasize answer quality while underreporting
+latency, TTFT, and monetary cost, which makes deployability comparisons
+incomplete~\cite{wu2024survey,brown2025systematic}. This paper presents
+a fixed-retriever benchmark for small-model RAG on a HotpotQA distractor
+subset, varying only generator choice and a corrective retrieval stage
+while logging retrieval quality, adjusted accuracy, faithfulness,
+abstention, latency, TTFT, and two cost axes from reproducible
+per-query artifacts~\cite{mala2026faithfulness,es2023ragas,saadfalcon2023ares,elkiran2026empirical}.
+Retrieval is held constant across all cells (BM25 sparse candidates
+followed by a MiniLM cross-encoder reranker), and only the generator and
+the presence of a corrective retrieval stage vary across a $3 \times 2$
+grid of three small open models and two pipelines. Every cell is scored
+on retrieval quality, adjusted accuracy, faithfulness, abstention,
+end-to-end latency, time to first token, and two cost axes: an
+API-equivalent cost and a GPU-amortised cost. We report results for
+$n=300$ queries per cell on a HotpotQA distractor subset.
+\TODO{one-sentence headline result once the matrix has run.}
+We release the harness, the per-query records, and the scorecards so that
+every reported number is reproducible from committed artifacts.
+
+\keywords{Retrieval-augmented generation \and Small language models \and
+Evaluation benchmark \and Faithfulness \and Latency \and Inference cost.}
+\end{abstract}

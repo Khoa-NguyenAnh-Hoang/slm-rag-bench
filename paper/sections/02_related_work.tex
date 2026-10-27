@@ -1,0 +1,70 @@
+% ============================================================
+%  sections/02_related_work.tex
+%  2. Related Work (~0.75 page)
+% ============================================================
+
+\section{Related Work}
+\label{sec:related}
+
+\textbf{RAG evaluation frameworks.}
+RAGAS introduced reference-free metrics for the retriever and the
+generator separately, including faithfulness, answer relevance, and
+context relevance, and validated them against human
+judgements~\cite{es2023ragas}. It measures text quality in isolation and
+does not account for latency or monetary cost. ARES adds lightweight
+trained judges and evaluates under domain shift, improving on pure
+prompting-based judges but still centering on answer quality~\cite{saadfalcon2023ares}.
+eRAG evaluates retrieval quality in a way that correlates better with
+downstream RAG performance than raw relevance labels, reinforcing that
+retrieval and generation should be evaluated jointly but
+separately~\cite{salemi2024erag}. RAGVUE decomposes evaluation into
+claim-level and diagnostic components, making it possible to attribute
+failures to retrieval, grounding, or reasoning~\cite{murugaraj2025ragvue}.
+RARE stresses perturbation robustness and time-sensitive corpora,
+showing that RAG systems can degrade under realistic distribution
+shifts~\cite{zeng2025rare}. RGB reframes evaluation as a stress test of
+four capabilities: noise robustness, negative rejection, information
+integration, and counterfactual robustness, and reports rejection rate
+alongside accuracy~\cite{chen2023rgb}. These frameworks score a
+pipeline; most still treat cost and latency as secondary rather than
+first-class axes.
+
+\textbf{Corrective and self-correcting retrieval.}
+CRAG adds a lightweight retrieval evaluator that scores each retrieved
+document and triggers one of three actions---Correct, Incorrect, or
+Ambiguous---then refines the context with a decompose-then-recompose step~\cite{yan2024crag}.
+It improves robustness when retrieval degrades, but published overhead
+numbers exclude retrieval and preprocessing, and the method assumes an
+external evaluator checkpoint plus an optional web-search
+fallback~\cite{yan2024crag}. The version evaluated here uses a local
+proxy evaluator and no live search (Section~\ref{sec:design}); it is
+therefore a derivative corrective design, not a full CRAG reproduction.
+
+\textbf{Cost, latency, and component analysis.}
+EvaRAG builds a large controlled configuration space over indexing,
+similarity, retrieval, and reranking, and logs semantic quality together
+with mean and P95 latency, token usage, and monetary cost per
+query~\cite{elkiran2026empirical}. Rasheed et al.\ apply factorial ANOVA
+and effect-size analysis to the same family of RAG components and show
+that retriever and similarity choices dominate quality variance while
+index choice mainly trades latency~\cite{rasheed2025empirical}. These
+works establish the scorecard this paper adopts, but they study large
+hosted models and treat retrieval as an experimental axis. Fixing
+retrieval and moving to small open models changes the question from
+``which pipeline component matters?'' to ``which deployable model should
+I pick?''.
+
+\textbf{Faithfulness in small models.}
+Mala et al.\ benchmark faithfulness hallucinations for 2--8B open models
+across sparse, dense, hybrid, and reranked retrieval, and show that
+stronger retrieval can raise raw accuracy while also raising
+hallucination rate; they introduce adjusted accuracy, which scores
+precision over attempted answers only~\cite{mala2026faithfulness}.
+Their study motivates our main faithfulness metric and our separation of
+rejection rate from accuracy. Importantly, faithfulness here means
+support by retrieved evidence, not factual truth; the two can diverge~\cite{murugaraj2025ragvue}.
+
+Table~\ref{tab:positioning} summarises how existing work differs from
+this benchmark.
+
+\input{tables/tab_positioning}

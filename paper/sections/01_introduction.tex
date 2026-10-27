@@ -1,0 +1,101 @@
+% ============================================================
+%  sections/01_introduction.tex
+%  1. Introduction (~0.75 page)
+% ============================================================
+
+\section{Introduction}
+\label{sec:intro}
+
+% --- Context ---
+Retrieval-augmented generation (RAG) grounds a language model's answer in
+retrieved evidence and is now a standard pattern for question answering
+over private or fast-changing corpora~\cite{lewis2020rag}. In deployment,
+the useful question is rarely ``which model is most accurate?'' but
+``which model gives the best answer per unit of money and time?'' Small
+open-weight models in the 1--8B parameter range are attractive on that
+second question: they can be served on a single consumer or workstation
+GPU, their weights and prompts stay private, and their per-query cost is
+predictable. Prior work shows that RAG systems still struggle with
+faithfulness, negative rejection, and noisy evidence handling, especially
+in small-to-mid model settings~\cite{mala2026faithfulness,chen2023rgb,zeng2025rare}.
+The trade-off is not simply that small models are worse than proprietary
+ones; it is that RAG evaluation is multi-component, and errors can
+originate from retrieval, grounding, or generation~\cite{murugaraj2025ragvue}.
+Model choice should therefore be framed as a quality--latency--cost
+trade-off rather than an accuracy-only comparison~\cite{wu2024survey,sharma2025survey}.
+
+% --- Gap ---
+Existing evaluations capture pieces of this picture but not the whole of
+it. RAGAS provides reference-free faithfulness and relevance metrics~\cite{es2023ragas}.
+ARES adds lightweight trained judges for domain-shift evaluation~\cite{saadfalcon2023ares}.
+eRAG evaluates retrieval quality in a way that correlates better with
+downstream performance than raw relevance labels~\cite{salemi2024erag}.
+RAGVUE decomposes evaluation into claim-level and diagnostic
+components~\cite{murugaraj2025ragvue}. RARE stresses perturbation
+robustness and time-sensitive corpora~\cite{zeng2025rare}. RGB stresses
+noise robustness and negative rejection~\cite{chen2023rgb}. Mala et al.\
+give a systematic study of faithfulness hallucinations across 2--8B
+models and several retrievers, and introduce adjusted accuracy and
+rejection rate~\cite{mala2026faithfulness}. EvaRAG and Rasheed et al.\
+add cost and latency to the RAG scorecard and use statistical tests to
+rank pipeline components~\cite{elkiran2026empirical,rasheed2025empirical}.
+Many evaluations still underreport efficiency and cost relative to answer
+quality~\cite{wu2024survey,saadfalcon2023ares}. What this paper does is
+combine these elements in one controlled benchmark design: (i) retrieval
+is held fixed so that two cells differ only by the model or the corrective
+stage, (ii) faithfulness, abstention, latency, and cost are all reported
+for the same queries, and (iii) every number is traceable to a committed
+per-query record. When retrieval is allowed to vary between model runs,
+a quality difference can be a retrieval difference in disguise, which is
+exactly the confound that makes quality-only rankings misleading~\cite{rasheed2025empirical}.
+
+% --- Contributions ---
+This paper makes four contributions:
+
+\begin{enumerate}
+    \item \textbf{A fixed-retriever benchmark design.} We hold the
+          retriever constant (BM25 sparse candidates, then a MiniLM
+          cross-encoder reranker) and vary only the generator and the
+          corrective stage, giving a $3 \times 2$ grid of three small
+          open models and two pipelines (Section~\ref{sec:design}). The
+          design isolates generator and corrective-stage effects under a
+          constant retrieval policy; it does not claim to identify the
+          globally best RAG architecture~\cite{elkiran2026empirical}.
+
+    \item \textbf{A multi-axis scorecard.} Each cell is scored on
+          retrieval quality, adjusted accuracy, hallucination and
+          rejection rate, RAGAS-style faithfulness, end-to-end latency,
+          time to first token, and two cost axes (Section~\ref{sec:method}).
+
+    \item \textbf{A measurement contract.} Rather than trusting notebook
+          conventions, the harness enforces seven rules about what counts
+          as a valid measurement, and fails a run that violates them
+          (Section~\ref{sec:method}).
+
+    \item \textbf{An open, reproducible artifact.} The harness, the
+          configuration, the per-query records, and the scorecards are
+          released together, so a reported number can be traced back to
+          the run that produced it (Section~\ref{sec:repro}).
+\end{enumerate}
+
+% --- Research questions ---
+We organise the study around three research questions:
+\begin{itemize}
+    \item \textbf{RQ1.} Among small open models evaluated under a fixed
+          retriever, which gives the best faithfulness for a given
+          latency and cost budget?
+    \item \textbf{RQ2.} Does adding a corrective retrieval stage improve
+          the cost--latency--faithfulness frontier, or only shift it?
+    \item \textbf{RQ3.} Does the model ranking change when latency and
+          cost are included in the comparison instead of quality alone?
+\end{itemize}
+
+% --- Paper structure ---
+The rest of the paper is organised as follows.
+Section~\ref{sec:related} reviews related work and positions this
+benchmark. Section~\ref{sec:design} describes the benchmark design.
+Section~\ref{sec:method} defines the metrics, the judge protocol, and the
+statistical tests. Section~\ref{sec:results} reports results and
+discussion. Section~\ref{sec:threats} discusses threats to validity,
+Section~\ref{sec:repro} covers reproducibility, and
+Section~\ref{sec:conclusion} concludes.

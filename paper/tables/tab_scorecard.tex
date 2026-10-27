@@ -1,0 +1,26 @@
+% ============================================================
+%  tables/tab_scorecard.tex
+%  Placeholder scorecard -- replace every "--" after the GPU run.
+% ============================================================
+
+\begin{table}[h]
+\centering
+\caption{Cross-cell scorecard (placeholder; $n=300$ queries per cell).}
+\label{tab:scorecard}
+\begin{tabular}{llcccccccc}
+\toprule
+\textbf{Cell} & \textbf{Pipeline} & \textbf{AdjAcc \%} & \textbf{Faithfulness} & \textbf{Halluc \%} & \textbf{Reject \%} & \textbf{Lat P95 ms} & \textbf{TTFT P95 ms} & \textbf{API \$} & \textbf{GPU \$} \\
+\midrule
+baseline--qwen2.5-1.5b & baseline & -- & -- & -- & -- & -- & -- & -- & -- \\
+crag--qwen2.5-1.5b & crag & -- & -- & -- & -- & -- & -- & -- & -- \\
+baseline--qwen3-4b & baseline & -- & -- & -- & -- & -- & -- & -- & -- \\
+crag--qwen3-4b & crag & -- & -- & -- & -- & -- & -- & -- & -- \\
+baseline--llama3.1-8b & baseline & -- & -- & -- & -- & -- & -- & -- & -- \\
+crag--llama3.1-8b & crag & -- & -- & -- & -- & -- & -- & -- & -- \\
+\bottomrule
+\end{tabular}
+
+\caption*{Retrieval metrics (MAP@3, NDCG@10, Recall@10) and retrieval
+depth are recorded per cell in \texttt{results/*/scorecard.json} and in
+the static report \texttt{results/report.html}.}
+\end{table}
