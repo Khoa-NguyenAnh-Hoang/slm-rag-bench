@@ -250,21 +250,26 @@ def ragas_compat() -> None:
 
 
 def build_judge(server: VLLMServer, mode: str = "JSON"):
-    """Instructor-style judge the ragas (PyPI 0.4.3) collections API accepts
-    (metrics/collections/base.py:113 _validate_llm requires InstructorBaseRagasLLM;
-    llm_factory without a client raises, llms/base.py:579).
-    Mode.JSON first (vLLM guided-JSON honors response_format); Mode.MD_JSON (plain-text JSON
-    parsing) is the sanctioned fallback — passed as judge.mode in the config.
+    """Judge the ragas (PyPI 0.4.3) collections API accepts
+    (metrics/collections/base.py _validate_llm requires InstructorBaseRagasLLM).
+
+    Not llm_factory(): it patches the client with instructor ITSELF
+    (_get_instructor_client, llms/base.py) and instructor >=1.x rejects an
+    already-patched client ("Got: Instructor"). So this patches the raw OpenAI
+    client with the CONFIGURED mode — Mode.JSON first (vLLM guided-JSON honors
+    response_format), Mode.MD_JSON the sanctioned fallback — and builds the same
+    InstructorLLM(llms/adapters/instructor.py) would, keeping the judge.mode knob.
     """
     ragas_compat()          # must precede the ragas import — see ragas_compat()
     import instructor
     from openai import OpenAI
-    from ragas.llms import llm_factory
+    from ragas.llms.base import InstructorLLM, InstructorModelArgs
 
-    return llm_factory(server.model, provider="openai",
-                       client=instructor.from_openai(
-                           OpenAI(base_url=server.url, api_key="local"),
-                           mode=getattr(instructor.Mode, mode.upper(), instructor.Mode.JSON)))
+    patched = instructor.from_openai(
+        OpenAI(base_url=server.url, api_key="local"),
+        mode=getattr(instructor.Mode, mode.upper(), instructor.Mode.JSON))
+    return InstructorLLM(client=patched, model=server.model, provider="openai",
+                         model_args=InstructorModelArgs())
 
 
 def build_embeddings(device: str = "cuda"):
