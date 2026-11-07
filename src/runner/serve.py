@@ -255,18 +255,22 @@ def build_judge(server: VLLMServer, mode: str = "JSON"):
 
     Not llm_factory(): it patches the client with instructor ITSELF
     (_get_instructor_client, llms/base.py) and instructor >=1.x rejects an
-    already-patched client ("Got: Instructor"). So this patches the raw OpenAI
-    client with the CONFIGURED mode — Mode.JSON first (vLLM guided-JSON honors
-    response_format), Mode.MD_JSON the sanctioned fallback — and builds the same
-    InstructorLLM(llms/adapters/instructor.py) would, keeping the judge.mode knob.
+    already-patched client ("Got: Instructor"). The client must also be ASYNC:
+    every ragas consumer runs asyncio (batch_score -> abatch_score -> await
+    llm.agenerate), and InstructorLLM._check_client_async only accepts an
+    AsyncInstructor — a sync OpenAI client raises "Cannot use agenerate() with
+    a synchronous client" at scoring time. So: AsyncOpenAI patched with the
+    CONFIGURED mode — Mode.JSON first (vLLM guided-JSON honors response_format),
+    Mode.MD_JSON the sanctioned fallback — then the same InstructorLLM
+    ragas's adapter (llms/adapters/instructor.py) would build, keeping judge.mode.
     """
     ragas_compat()          # must precede the ragas import — see ragas_compat()
     import instructor
-    from openai import OpenAI
+    from openai import AsyncOpenAI
     from ragas.llms.base import InstructorLLM, InstructorModelArgs
 
     patched = instructor.from_openai(
-        OpenAI(base_url=server.url, api_key="local"),
+        AsyncOpenAI(base_url=server.url, api_key="local"),
         mode=getattr(instructor.Mode, mode.upper(), instructor.Mode.JSON))
     return InstructorLLM(client=patched, model=server.model, provider="openai",
                          model_args=InstructorModelArgs())
