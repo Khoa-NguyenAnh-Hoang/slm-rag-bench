@@ -52,6 +52,9 @@ class VLLMServer:
         return f"http://{self.host}:{self.port}/v1"
 
     def _wait_until(self, path: str) -> None:
+        # `path` is relative to the SERVER ROOT, not to self.url: vLLM serves /v1/models
+        # but /health at the root — polling /v1/health 404s forever while the server is up.
+        base = f"http://{self.host}:{self.port}"
         deadline = time.time() + self.startup_timeout_s
         err: Exception | None = None
         while time.time() < deadline:
@@ -59,7 +62,7 @@ class VLLMServer:
                 raise RuntimeError(f"vllm exited early (rc={self._proc.returncode}) — "
                                    f"see {self.log_path}")
             try:
-                with urllib.request.urlopen(self.url + path, timeout=5) as r:
+                with urllib.request.urlopen(base + path, timeout=5) as r:
                     if r.status == 200:
                         return
             except Exception as e:      # server not up yet
@@ -94,7 +97,7 @@ class VLLMServer:
         # start_new_session: own process group, so killpg kills the engine's children too.
         self._proc = subprocess.Popen(cmd, stdout=log, stderr=subprocess.STDOUT,
                                       start_new_session=True)
-        self._wait_until("/models")
+        self._wait_until("/v1/models")
         self._wait_until("/health")
         return self
 
