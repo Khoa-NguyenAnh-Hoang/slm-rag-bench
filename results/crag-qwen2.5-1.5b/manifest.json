@@ -1,0 +1,118 @@
+{
+  "cell": "crag-qwen2.5-1.5b",
+  "pipeline": "crag",
+  "model_key": "qwen2.5-1.5b",
+  "model_id": "Qwen/Qwen2.5-1.5B-Instruct",
+  "serve_id": "Qwen/Qwen2.5-1.5B-Instruct-AWQ",
+  "quantization": "awq",
+  "n": 30,
+  "seed": 42,
+  "config": {
+    "n": 300,
+    "seed": 42,
+    "output_root": "results",
+    "eval_split": "train",
+    "corpus": {
+      "split": "train",
+      "max_paras": null
+    },
+    "retrieval": {
+      "beta_rerank": 0.85,
+      "top_k": 10,
+      "cand_k": 30,
+      "metrics_ks": [
+        1,
+        3,
+        5,
+        10
+      ]
+    },
+    "crag": {
+      "model": "google/flan-t5-base",
+      "upper": 0.5,
+      "lower": -0.5,
+      "strip_top_n": 5
+    },
+    "generator": {
+      "max_new_tokens": 128,
+      "temperature": 0.0
+    },
+    "serve": {
+      "host": "127.0.0.1",
+      "port": 8000,
+      "judge_port": 8001,
+      "gpu_memory_utilization": 0.5,
+      "max_model_len": 4096,
+      "extra_args": [],
+      "judge_extra_args": [
+        "--chat-template",
+        "configs/mistral_instruct_v03_chat_template.jinja"
+      ]
+    },
+    "judge": {
+      "model_id": "mistralai/Mistral-7B-Instruct-v0.3",
+      "serve_id": "solidrust/Mistral-7B-Instruct-v0.3-AWQ",
+      "mode": "MD_JSON",
+      "probe_min_pass": 4
+    },
+    "models": {
+      "qwen2.5-1.5b": {
+        "label": "Qwen2.5-1.5B-Instruct",
+        "model_id": "Qwen/Qwen2.5-1.5B-Instruct",
+        "serve_id": "Qwen/Qwen2.5-1.5B-Instruct-AWQ",
+        "quantization": "awq"
+      },
+      "qwen3-4b": {
+        "label": "Qwen3-4B-Instruct-2507",
+        "model_id": "Qwen/Qwen3-4B-Instruct-2507",
+        "serve_id": "cyankiwi/Qwen3-4B-Instruct-2507-AWQ-4bit",
+        "quantization": null
+      },
+      "llama3.1-8b": {
+        "label": "LLaMA-3.1-8B-Instruct",
+        "model_id": "meta-llama/Meta-Llama-3.1-8B-Instruct",
+        "serve_id": "hugging-quants/Meta-Llama-3.1-8B-Instruct-AWQ-INT4",
+        "quantization": "awq"
+      }
+    },
+    "_model_key": "qwen2.5-1.5b"
+  },
+  "dataset": {
+    "dataset": "hotpotqa/hotpot_qa",
+    "revision": "1908d6afbbead072334abe2965f91bd2709910ab",
+    "config": "distractor",
+    "splits": {
+      "dev": "validation",
+      "train": "train"
+    },
+    "source": "huggingface.co/datasets/hotpotqa/hotpot_qa",
+    "note": "upstream raw-JSON hosts are unreachable; the HF Hub is the only live route",
+    "cache_caveat": "a pre-existing scratch/hotpot_*.json predates this pin — delete it to re-fetch at HF_REVISION"
+  },
+  "corpus": {
+    "split": "train",
+    "paragraphs": 483696,
+    "max_paras": null,
+    "eval_split": "train",
+    "n": 30,
+    "queries_with_no_gold_in_corpus": 0
+  },
+  "pricing": {
+    "api_usd_per_1m": {
+      "prompt": 0.04,
+      "completion": 0.08
+    },
+    "gpu_usd_per_hour": 0.35,
+    "version": "2026-09-29-verified",
+    "verified": true
+  },
+  "git_rev": "72d5b014333be4f7654d68eda736aa737ae2b818",
+  "hardware": {
+    "gpu": "Tesla T4",
+    "torch": "2.13.0+cu130"
+  },
+  "deviations": [
+    "CRAG evaluator is the flan-t5-base proxy, not CRAG's trained 0.77B t5-large",
+    "fixed retriever is bm25s + MiniLM rerank, sparse only: no dense fusion. Sparse-only recall@30 is 0.9800 and the reranked top-10 is 0.9767, so a dense arm fused into this pool could add at most 0.0033 recall@10 (src/retrieval/NOTES.md)"
+  ]
+}

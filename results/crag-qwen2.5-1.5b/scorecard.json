@@ -1,0 +1,2357 @@
+{
+  "cell": "crag-qwen2.5-1.5b",
+  "config": {
+    "n": 300,
+    "seed": 42,
+    "output_root": "results",
+    "eval_split": "train",
+    "corpus": {
+      "split": "train",
+      "max_paras": null
+    },
+    "retrieval": {
+      "beta_rerank": 0.85,
+      "top_k": 10,
+      "cand_k": 30,
+      "metrics_ks": [
+        1,
+        3,
+        5,
+        10
+      ]
+    },
+    "crag": {
+      "model": "google/flan-t5-base",
+      "upper": 0.5,
+      "lower": -0.5,
+      "strip_top_n": 5
+    },
+    "generator": {
+      "max_new_tokens": 128,
+      "temperature": 0.0
+    },
+    "serve": {
+      "host": "127.0.0.1",
+      "port": 8000,
+      "judge_port": 8001,
+      "gpu_memory_utilization": 0.5,
+      "max_model_len": 4096,
+      "extra_args": [],
+      "judge_extra_args": [
+        "--chat-template",
+        "configs/mistral_instruct_v03_chat_template.jinja"
+      ]
+    },
+    "judge": {
+      "model_id": "mistralai/Mistral-7B-Instruct-v0.3",
+      "serve_id": "solidrust/Mistral-7B-Instruct-v0.3-AWQ",
+      "mode": "MD_JSON",
+      "probe_min_pass": 4
+    },
+    "models": {
+      "qwen2.5-1.5b": {
+        "label": "Qwen2.5-1.5B-Instruct",
+        "model_id": "Qwen/Qwen2.5-1.5B-Instruct",
+        "serve_id": "Qwen/Qwen2.5-1.5B-Instruct-AWQ",
+        "quantization": "awq"
+      },
+      "qwen3-4b": {
+        "label": "Qwen3-4B-Instruct-2507",
+        "model_id": "Qwen/Qwen3-4B-Instruct-2507",
+        "serve_id": "cyankiwi/Qwen3-4B-Instruct-2507-AWQ-4bit",
+        "quantization": null
+      },
+      "llama3.1-8b": {
+        "label": "LLaMA-3.1-8B-Instruct",
+        "model_id": "meta-llama/Meta-Llama-3.1-8B-Instruct",
+        "serve_id": "hugging-quants/Meta-Llama-3.1-8B-Instruct-AWQ-INT4",
+        "quantization": "awq"
+      }
+    },
+    "_model_key": "qwen2.5-1.5b"
+  },
+  "summary": {
+    "n_queries": 30,
+    "latency_ms": {
+      "mean": 3325.0445339666844,
+      "p95": 5427.217329000219,
+      "n": 30
+    },
+    "stage_latency_ms": {
+      "crag": {
+        "mean": 1375.290303866556,
+        "p95": 1796.5510506995997,
+        "n": 30
+      },
+      "generate": {
+        "mean": 1833.1040257001102,
+        "p95": 3020.552889800092,
+        "n": 30
+      },
+      "rerank": {
+        "mean": 88.7028892667028,
+        "p95": 155.97707080000862,
+        "n": 30
+      },
+      "retrieve": {
+        "mean": 27.904589266593877,
+        "p95": 36.5830972495587,
+        "n": 30
+      }
+    },
+    "ttft_ms": {
+      "mean": 153.61154486657446,
+      "p95": 173.0317982998258,
+      "n": 30
+    },
+    "tok_per_s": {
+      "mean": 12.020864138215426,
+      "p95": 16.20471202851892,
+      "n": 30
+    },
+    "prompt_tokens": 14863,
+    "completion_tokens": 1234,
+    "total_tokens": 16097,
+    "api_cost_usd": 0.00069324,
+    "gpu_cost_usd": 0.05154311873880558,
+    "n_with_api_cost": 30,
+    "n_with_gpu_cost": 30
+  },
+  "corpus": {
+    "split": "train",
+    "paragraphs": 483696,
+    "max_paras": null,
+    "eval_split": "train",
+    "n": 30,
+    "queries_with_no_gold_in_corpus": 0
+  },
+  "pricing": {
+    "api_usd_per_1m": {
+      "prompt": 0.04,
+      "completion": 0.08
+    },
+    "gpu_usd_per_hour": 0.35,
+    "version": "2026-09-29-verified",
+    "verified": true
+  },
+  "wall_clock_s": 530.1577927420003,
+  "retrieval": {
+    "depth": 10.0,
+    "map@1": 0.6611111111111111,
+    "ndcg@1": 0.9333333333333333,
+    "recall@1": 0.46111111111111114,
+    "map@3": 0.875,
+    "ndcg@3": 0.8995152250991827,
+    "recall@3": 0.7,
+    "map@5": 0.9049999999999999,
+    "ndcg@5": 0.93792145060415,
+    "recall@5": 0.7666666666666667,
+    "map@10": 0.9083333333333333,
+    "ndcg@10": 0.9438294268302848,
+    "recall@10": 0.7833333333333333,
+    "mrr": 0.9566666666666667,
+    "coverage": 1.0
+  },
+  "adjusted_accuracy_pct": 53.84615384615385,
+  "adjusted_accuracy_formula": "Correct / (Correct + Hallucinated) * 100",
+  "raw_accuracy_pct": 46.666666666666664,
+  "hallucination_rate_pct": 40.0,
+  "rejection_rate_pct": 13.333333333333334,
+  "unlabelled_pct": 0.0,
+  "label_note": "deterministic substring labels. 'Unknown' = no reference answer for that row; excluded from adjusted accuracy and reported as unlabelled_pct rather than counted as hallucination (contract rule 3)",
+  "crag_action_distribution": {
+    "Ambiguous": 13,
+    "Correct": 15,
+    "Incorrect": 2
+  },
+  "ragas": {
+    "faithfulness": 0.48166666666666663,
+    "faithfulness_n": 30,
+    "answer_relevancy": 0.584790263850787,
+    "answer_relevancy_n": 30,
+    "context_relevance": 0.85,
+    "context_relevance_n": 30
+  },
+  "primary_metric": "ragas.faithfulness",
+  "judge_serve_id": "solidrust/Mistral-7B-Instruct-v0.3-AWQ",
+  "generator_serve_id": "Qwen/Qwen2.5-1.5B-Instruct-AWQ",
+  "queries": [
+    {
+      "query_id": "5ac2cecf554299657fa29076",
+      "question": "Thomas Uva and Rosemarie Uva, were married ex-cons from Ozone Park, Queens and considered a modern-day \"Bonnie and Clyde\", were American criminals who traveled the central United States with their gang during which time period, robbing people and killing when cornered or confronted?",
+      "answer": "Thomas Uva and Rosemarie Uva, often referred to as Bonnie and Clyde, were American criminals who traveled the central United States with their gang during the Great Depression, specifically between 1931 and 1935. They robbed people and killed when cornered or confronted.",
+      "contexts": [
+        "Thomas Uva and Rosemarie Uva (often misspelled \"Rosemary\" or \"Rose Marie\") were married ex-cons from Ozone Park, Queens and considered a modern-day \"Bonnie and Clyde\".",
+        "Jonathan Fernandez is an American writer and producer. He wrote the film \"Rob The Mob\" starring Michael Pitt, Nina Arianda, Andy Garcia, Ray Romano, and directed by Raymond DeFellitta based on the true-life story of Thomas Uva and Rose Marie De Toma",
+        "Bonnie Elizabeth Parker (October 1, 1910 – May 23, 1934) and Clyde Chestnut Barrow also known as Clyde Champion Barrow (March 24, 1909 – May 23, 1934) were American criminals who traveled the central United States with their gang during the Great Depression, robbing people and killing when cornered or confronted. Their exploits captured the attention of the American public during the \"Public Enemy Era,\" between 1931 and 1935. Though known today for their dozen-or-so bank robberies, the duo most often preferred to rob small stores or rural gas stations.",
+        "Henry Methvin (April 8, 1912 – April 19, 1948) was an American criminal, a bank robber, and a Depression-era outlaw. He is best remembered as the final member of Bonnie and Clyde's gang and whose father, Ivan Methvin, was handcuffed to a tree and used his log truck to slow them down so they could shoot them to their deaths at the hands of a posse headed by Texas lawman Frank Hamer in 1934. His role in the gang has often been misattributed to teenage gang member W.D.",
+        "A Day in the Life of Bonnie and Clyde is a 1968 studio album by Mel Tormé. It was released during a wave of renewed interest in the crime duo Bonnie and Clyde following the release of the 1967 film \"Bonnie and Clyde\". With the exception of the title track, an original song by Tormé, the album mostly consists of covers of popular songs from the late 1920s and early 1930s, around the period when the real-life Bonnie and Clyde were committing their bank robberies."
+      ],
+      "retrieved_ids": [
+        233693,
+        227288,
+        71648,
+        11067,
+        11063,
+        164816,
+        11062,
+        87027,
+        482922,
+        248704
+      ],
+      "gold_ids": [
+        11067,
+        233693
+      ],
+      "latency_ms": 6235.7997350000005,
+      "stage_latency_ms": {
+        "retrieve": 30.008477000592393,
+        "rerank": 282.4195379998855,
+        "crag": 2917.3467070004335,
+        "generate": 3005.971556000077
+      },
+      "action": "Ambiguous",
+      "crag": {
+        "action": "Ambiguous",
+        "strips": [
+          "Thomas Uva and Rosemarie Uva (often misspelled \"Rosemary\" or \"Rose Marie\") were married ex-cons from Ozone Park, Queens and considered a modern-day \"Bonnie and Clyde\".",
+          "Jonathan Fernandez is an American writer and producer. He wrote the film \"Rob The Mob\" starring Michael Pitt, Nina Arianda, Andy Garcia, Ray Romano, and directed by Raymond DeFellitta based on the true-life story of Thomas Uva and Rose Marie De Toma",
+          "Bonnie Elizabeth Parker (October 1, 1910 – May 23, 1934) and Clyde Chestnut Barrow also known as Clyde Champion Barrow (March 24, 1909 – May 23, 1934) were American criminals who traveled the central United States with their gang during the Great Depression, robbing people and killing when cornered or confronted. Their exploits captured the attention of the American public during the \"Public Enemy Era,\" between 1931 and 1935. Though known today for their dozen-or-so bank robberies, the duo most often preferred to rob small stores or rural gas stations.",
+          "Henry Methvin (April 8, 1912 – April 19, 1948) was an American criminal, a bank robber, and a Depression-era outlaw. He is best remembered as the final member of Bonnie and Clyde's gang and whose father, Ivan Methvin, was handcuffed to a tree and used his log truck to slow them down so they could shoot them to their deaths at the hands of a posse headed by Texas lawman Frank Hamer in 1934. His role in the gang has often been misattributed to teenage gang member W.D.",
+          "A Day in the Life of Bonnie and Clyde is a 1968 studio album by Mel Tormé. It was released during a wave of renewed interest in the crime duo Bonnie and Clyde following the release of the 1967 film \"Bonnie and Clyde\". With the exception of the title track, an original song by Tormé, the album mostly consists of covers of popular songs from the late 1920s and early 1930s, around the period when the real-life Bonnie and Clyde were committing their bank robberies."
+        ],
+        "strip_scores": [
+          -0.584,
+          -0.712,
+          0.444,
+          -0.579,
+          -0.586
+        ],
+        "doc_scores": [
+          -0.584,
+          -0.712,
+          -0.873,
+          0.407,
+          -0.752,
+          -0.845,
+          -0.577,
+          -0.794,
+          -0.86,
+          -0.566
+        ]
+      },
+      "prompt_tokens": 669,
+      "completion_tokens": 61,
+      "ttft_ms": 735.3899279996767,
+      "extra": {
+        "action": "Ambiguous",
+        "label": "Correct",
+        "gold_in_index": true
+      }
+    },
+    {
+      "query_id": "5a83498e55429966c78a6b72",
+      "question": "Which English screenwriter created two BBC sitcoms including one set in the town of Runcorn?",
+      "answer": "Susan Nickson created two BBC sitcoms including one set in the town of Runcorn.",
+      "contexts": [
+        "Two Pints of Lager and a Packet of Crisps is a British sitcom that ran from 26 February 2001 to 24 May 2011. First broadcast on BBC Two, it starred Ralf Little, Will Mellor, Natalie Casey, Sheridan Smith, Kathryn Drysdale, and Luke Gell. Created and written by Susan Nickson, it was set in the northwest England town of Runcorn, and originally revolved around the lives of five twenty-somethings.",
+        "Susan Nickson is an English screenwriter, television producer, and script editor. She is the creator and writer of BBC sitcoms \"Two Pints of Lager and a Packet of Crisps\" (2001–2011) and \"Grownups\" (2006–2009).",
+        "Tim Dawson (born 1988) is a British screenwriter. He is the creator and writer of BBC Three sitcom \"Coming of Age\" (2007-2011), which was piloted in 2007 and ran for three series. He was educated at Abingdon School from 1999-2006 and created Coming of Age whilst still a teenager.",
+        "John Jeremy Lloyd, OBE (22 July 1930 – 23 December 2014) was an English writer, screenwriter, author, poet and actor, best known as co-author and writer of several successful British sitcoms, including \"Are You Being Served? \" and \"'Allo 'Allo! \".",
+        "Toby Whithouse is an English actor, stand-up comedian and screenwriter. His highest-profile work has been the creation of the BBC Three supernatural television series \"Being Human\". He also created the Channel 4 television drama series \"No Angels\" (2004–06), and has written for BBC One's \"Hotel Babylon\" and \"Doctor Who\"."
+      ],
+      "retrieved_ids": [
+        100708,
+        100703,
+        100710,
+        37928,
+        111816,
+        188860,
+        188858,
+        188859,
+        64832,
+        27649
+      ],
+      "gold_ids": [
+        100703,
+        100708
+      ],
+      "latency_ms": 2406.9097040000997,
+      "stage_latency_ms": {
+        "retrieve": 26.5705589999925,
+        "rerank": 95.49663999951008,
+        "crag": 1392.9797909995614,
+        "generate": 891.8173430001843
+      },
+      "action": "Correct",
+      "crag": {
+        "action": "Correct",
+        "strips": [
+          "Two Pints of Lager and a Packet of Crisps is a British sitcom that ran from 26 February 2001 to 24 May 2011. First broadcast on BBC Two, it starred Ralf Little, Will Mellor, Natalie Casey, Sheridan Smith, Kathryn Drysdale, and Luke Gell. Created and written by Susan Nickson, it was set in the northwest England town of Runcorn, and originally revolved around the lives of five twenty-somethings.",
+          "Susan Nickson is an English screenwriter, television producer, and script editor. She is the creator and writer of BBC sitcoms \"Two Pints of Lager and a Packet of Crisps\" (2001–2011) and \"Grownups\" (2006–2009).",
+          "Tim Dawson (born 1988) is a British screenwriter. He is the creator and writer of BBC Three sitcom \"Coming of Age\" (2007-2011), which was piloted in 2007 and ran for three series. He was educated at Abingdon School from 1999-2006 and created Coming of Age whilst still a teenager.",
+          "John Jeremy Lloyd, OBE (22 July 1930 – 23 December 2014) was an English writer, screenwriter, author, poet and actor, best known as co-author and writer of several successful British sitcoms, including \"Are You Being Served? \" and \"'Allo 'Allo! \".",
+          "Toby Whithouse is an English actor, stand-up comedian and screenwriter. His highest-profile work has been the creation of the BBC Three supernatural television series \"Being Human\". He also created the Channel 4 television drama series \"No Angels\" (2004–06), and has written for BBC One's \"Hotel Babylon\" and \"Doctor Who\"."
+        ],
+        "strip_scores": [
+          0.873,
+          0.936,
+          0.743,
+          0.778,
+          0.698
+        ],
+        "doc_scores": [
+          0.85,
+          0.936,
+          0.763,
+          -0.746,
+          0.313,
+          0.377,
+          0.778,
+          -0.275,
+          -0.035,
+          0.638
+        ]
+      },
+      "prompt_tokens": 549,
+      "completion_tokens": 20,
+      "ttft_ms": 134.25714799996058,
+      "extra": {
+        "action": "Correct",
+        "label": "Correct",
+        "gold_in_index": true
+      }
+    },
+    {
+      "query_id": "5ab2a1f1554299340b525536",
+      "question": "Which is farther north, Gainesville Regional Airport or John F. Kennedy International Airport?",
+      "answer": "Gainesville Regional Airport is farther north than John F. Kennedy International Airport. Gainesville Regional Airport is located three miles northeast of Gainesville, while John F. Kennedy International Airport is located two nautical miles southwest of Ashland, Wisconsin.",
+      "contexts": [
+        "Gainesville Regional Airport (IATA: GNV, ICAO: KGNV, FAA LID: GNV) is a public airport three miles northeast of Gainesville, in Alachua County, Florida. It is owned by Gainesville-Alachua Co. Auth.",
+        "John F. Kennedy Memorial Airport (IATA: ASX, ICAO: KASX, FAA LID: ASX) is a city and county owned public use airport located two nautical miles (4 km) southwest of the central business district of Ashland, a city in Ashland County, Wisconsin, United States. It is also known as JFK Memorial Airport.",
+        "Williston Municipal Airport (FAA LID: X60) is a city-owned, public-use airport located two nautical miles (4 km) southwest of the central business district of Williston, a city in Levy County, Florida, United States. Commonly referred to as Williston Airport, it is located 23 mi southwest of Gainesville Regional Airport (GNV). Opened in 1974 for public use, it does not have a control tower.",
+        "President, John F. Kennedy, and conforms to the Chicago-area convention of using the term \"Expressway\" for an Interstate Highway without tolls. The Interstate 90 (I-90) portion of the Kennedy is a part of the much longer I-90 (which runs 3111.52 mi from Boston, Massachusetts to Seattle, Washington).",
+        "Trans World Airlines Flight 358 (TWA Flight 358) was a domestic flight traveling from Chicago's O'Hare International Airport to New York City's John F. Kennedy International Airport. On June 11, 1971, a ticketless man named Gregory White boarded the Boeing 727 aircraft using force and demanded a machine gun, $75,000, and to be flown to North Vietnam."
+      ],
+      "retrieved_ids": [
+        219080,
+        221143,
+        33069,
+        110518,
+        219079,
+        103718,
+        2242,
+        317567,
+        33066,
+        71094
+      ],
+      "gold_ids": [
+        219080,
+        33069,
+        221143
+      ],
+      "latency_ms": 4274.990128999889,
+      "stage_latency_ms": {
+        "retrieve": 21.97931799946673,
+        "rerank": 67.57150799967349,
+        "crag": 1645.0159790001635,
+        "generate": 2540.3718219995426
+      },
+      "action": "Ambiguous",
+      "crag": {
+        "action": "Ambiguous",
+        "strips": [
+          "Gainesville Regional Airport (IATA: GNV, ICAO: KGNV, FAA LID: GNV) is a public airport three miles northeast of Gainesville, in Alachua County, Florida. It is owned by Gainesville-Alachua Co. Auth.",
+          "John F. Kennedy Memorial Airport (IATA: ASX, ICAO: KASX, FAA LID: ASX) is a city and county owned public use airport located two nautical miles (4 km) southwest of the central business district of Ashland, a city in Ashland County, Wisconsin, United States. It is also known as JFK Memorial Airport.",
+          "Williston Municipal Airport (FAA LID: X60) is a city-owned, public-use airport located two nautical miles (4 km) southwest of the central business district of Williston, a city in Levy County, Florida, United States. Commonly referred to as Williston Airport, it is located 23 mi southwest of Gainesville Regional Airport (GNV). Opened in 1974 for public use, it does not have a control tower.",
+          "President, John F. Kennedy, and conforms to the Chicago-area convention of using the term \"Expressway\" for an Interstate Highway without tolls. The Interstate 90 (I-90) portion of the Kennedy is a part of the much longer I-90 (which runs 3111.52 mi from Boston, Massachusetts to Seattle, Washington).",
+          "Trans World Airlines Flight 358 (TWA Flight 358) was a domestic flight traveling from Chicago's O'Hare International Airport to New York City's John F. Kennedy International Airport. On June 11, 1971, a ticketless man named Gregory White boarded the Boeing 727 aircraft using force and demanded a machine gun, $75,000, and to be flown to North Vietnam."
+        ],
+        "strip_scores": [
+          -0.023,
+          -0.366,
+          -0.188,
+          -0.379,
+          -0.371
+        ],
+        "doc_scores": [
+          -0.097,
+          -0.531,
+          -0.531,
+          -0.366,
+          -0.188,
+          -0.339,
+          -0.48,
+          -0.48,
+          -0.382,
+          -0.495
+        ]
+      },
+      "prompt_tokens": 542,
+      "completion_tokens": 50,
+      "ttft_ms": 154.69860499979404,
+      "extra": {
+        "action": "Ambiguous",
+        "label": "Correct",
+        "gold_in_index": true
+      }
+    },
+    {
+      "query_id": "5adc097b55429947ff1738c1",
+      "question": "The Netherlands Antilles now includes which plantation colony?",
+      "answer": "Based on the given contexts, the Netherlands Antilles now includes Surinam.",
+      "contexts": [
+        "Surinam was a Dutch plantation colony in the Guianas, neighboured by the equally Dutch colony of Berbice to the west, and the French colony of Cayenne to the east. Surinam was a Dutch colony from 26 February 1667, when Dutch forces captured Francis Willoughby's English colony during the Second Anglo-Dutch War, until 15 December 1954, when Suriname became a constituent country of the Kingdom of the Netherlands. The status quo of Dutch sovereignty over Surinam, and English sovereignty over New Netherland, which it had conquered in 1664, was kept in the Treaty of Breda of 31 July 1667, and again confirmed in the Treaty of Westminster of 1674.",
+        "The Dutch Virgin Islands is the collective name for the enclaves that the Dutch West India Company had in the Virgin Islands. The area was ruled by a director, whose seat was not permanent. The main reason for starting a colony here was that it lay strategically between the Dutch colonies in the south (Netherlands Antilles, Suriname) and New Netherland.",
+        "The Dutch West India Company was mainly affected by the competition from Denmark, England and Spain. In 1680 the remaining islands became a British colony.",
+        "The Royal Netherlands East Indies Army (\"Koninklijk Nederlands Indisch Leger\"; KNIL) was the military force maintained by the Netherlands in its colony of the Netherlands East Indies (also known as the Dutch East Indies), in areas that are now part of Indonesia. The KNIL's air arm was the Royal Netherlands East Indies Army Air Force. Elements of the Royal Netherlands Navy were also stationed in the Netherlands East Indies.",
+        "At the time of the elections, the Netherlands Antilles consisted of the Caribbean islands of Bonaire, Curaçao, Saba, Sint Eustatius and Sint Maarten."
+      ],
+      "retrieved_ids": [
+        83718,
+        334467,
+        215358,
+        215361,
+        365247,
+        179420,
+        334471,
+        334470,
+        334472,
+        334466
+      ],
+      "gold_ids": [
+        83718,
+        334467
+      ],
+      "latency_ms": 2005.688113999895,
+      "stage_latency_ms": {
+        "retrieve": 26.054334999571438,
+        "rerank": 74.23135200042452,
+        "crag": 1184.0309029994387,
+        "generate": 721.3350069996523
+      },
+      "action": "Ambiguous",
+      "crag": {
+        "action": "Ambiguous",
+        "strips": [
+          "Surinam was a Dutch plantation colony in the Guianas, neighboured by the equally Dutch colony of Berbice to the west, and the French colony of Cayenne to the east. Surinam was a Dutch colony from 26 February 1667, when Dutch forces captured Francis Willoughby's English colony during the Second Anglo-Dutch War, until 15 December 1954, when Suriname became a constituent country of the Kingdom of the Netherlands. The status quo of Dutch sovereignty over Surinam, and English sovereignty over New Netherland, which it had conquered in 1664, was kept in the Treaty of Breda of 31 July 1667, and again confirmed in the Treaty of Westminster of 1674.",
+          "The Dutch Virgin Islands is the collective name for the enclaves that the Dutch West India Company had in the Virgin Islands. The area was ruled by a director, whose seat was not permanent. The main reason for starting a colony here was that it lay strategically between the Dutch colonies in the south (Netherlands Antilles, Suriname) and New Netherland.",
+          "The Dutch West India Company was mainly affected by the competition from Denmark, England and Spain. In 1680 the remaining islands became a British colony.",
+          "The Royal Netherlands East Indies Army (\"Koninklijk Nederlands Indisch Leger\"; KNIL) was the military force maintained by the Netherlands in its colony of the Netherlands East Indies (also known as the Dutch East Indies), in areas that are now part of Indonesia. The KNIL's air arm was the Royal Netherlands East Indies Army Air Force. Elements of the Royal Netherlands Navy were also stationed in the Netherlands East Indies.",
+          "At the time of the elections, the Netherlands Antilles consisted of the Caribbean islands of Bonaire, Curaçao, Saba, Sint Eustatius and Sint Maarten."
+        ],
+        "strip_scores": [
+          0.231,
+          -0.397,
+          -0.739,
+          -0.281,
+          -0.607
+        ],
+        "doc_scores": [
+          -0.845,
+          0.231,
+          -0.924,
+          -0.924,
+          -0.389,
+          -0.281,
+          -0.513,
+          -0.904,
+          -0.841,
+          -0.81
+        ]
+      },
+      "prompt_tokens": 533,
+      "completion_tokens": 17,
+      "ttft_ms": 134.73575399984838,
+      "extra": {
+        "action": "Ambiguous",
+        "label": "Correct",
+        "gold_in_index": true
+      }
+    },
+    {
+      "query_id": "5ae4593155429970de88d935",
+      "question": "Who was the coach who left for Milan the same year that the first golden goal scorer was topscorer for Udinese Calcio?",
+      "answer": "Alberto Zaccheroni left for Milan the same year that Oliver Bierhoff scored the first golden goal for Udinese Calcio, making him the coach who departed for Milan during that period.",
+      "contexts": [
+        "Udinese Calcio only faded a little bit compared to its club record-breaking 1997–98 season, in which it finished third in Serie A. With topscorer Oliver Bierhoff, midfielder Thomas Helveg and coach Alberto Zaccheroni all departing for Milan, Udinese was looking to be on the back foot prior to the start of the season.",
+        "Udinese Calcio sensationally finished third in Serie A, much due to Oliver Bierhoff being in the form of his life, scoring 27 goals in a league season consisting of just 34 matches. Bierhoff, coach Alberto Zaccheroni and winger Thomas Helveg all left for Milan at the end of the season, ensuring Udinese had lots of work to do to stay at the level it was.",
+        "Despite the sensational results, coach Alberto Zaccheroni remained at the small club, while 1997–98 looked set to become a further improvement for Udinese.",
+        "Udinese Calcio bounced back from the hugely disappointing 2001–02 Serie A season, in which it only just managed to avoid relegation. Under new coach Luciano Spalletti, Udinese gathered strength, and was a constant feature on the top half of the league table. Even though the squad lacked the goalscoring punch, the defence led by Néstor Sensini and surprising goalkeeper Morgan De Sanctis held it together to such a degree it finished sixth in the league.",
+        "Parma Associazione Calcio played its sixth consecutive Serie A season, which was the last under legendary coach Nevio Scala, who stepped down at the end of the season. Defensive stalwarts Alberto Di Chiara and Lorenzo Minotti also left the club following the season's conclusion. Despite being only one point behind third-placed Lazio, Parma finished 6th in the standings."
+      ],
+      "retrieved_ids": [
+        11973,
+        11970,
+        11965,
+        11972,
+        11969,
+        11964,
+        323420,
+        11966,
+        272282,
+        235074
+      ],
+      "gold_ids": [
+        11973,
+        11967
+      ],
+      "latency_ms": 2814.7551510000994,
+      "stage_latency_ms": {
+        "retrieve": 27.43052000005264,
+        "rerank": 71.4201620003223,
+        "crag": 1150.7101179995516,
+        "generate": 1565.1612190004016
+      },
+      "action": "Correct",
+      "crag": {
+        "action": "Correct",
+        "strips": [
+          "Udinese Calcio only faded a little bit compared to its club record-breaking 1997–98 season, in which it finished third in Serie A. With topscorer Oliver Bierhoff, midfielder Thomas Helveg and coach Alberto Zaccheroni all departing for Milan, Udinese was looking to be on the back foot prior to the start of the season.",
+          "Udinese Calcio sensationally finished third in Serie A, much due to Oliver Bierhoff being in the form of his life, scoring 27 goals in a league season consisting of just 34 matches. Bierhoff, coach Alberto Zaccheroni and winger Thomas Helveg all left for Milan at the end of the season, ensuring Udinese had lots of work to do to stay at the level it was.",
+          "Despite the sensational results, coach Alberto Zaccheroni remained at the small club, while 1997–98 looked set to become a further improvement for Udinese.",
+          "Udinese Calcio bounced back from the hugely disappointing 2001–02 Serie A season, in which it only just managed to avoid relegation. Under new coach Luciano Spalletti, Udinese gathered strength, and was a constant feature on the top half of the league table. Even though the squad lacked the goalscoring punch, the defence led by Néstor Sensini and surprising goalkeeper Morgan De Sanctis held it together to such a degree it finished sixth in the league.",
+          "Parma Associazione Calcio played its sixth consecutive Serie A season, which was the last under legendary coach Nevio Scala, who stepped down at the end of the season. Defensive stalwarts Alberto Di Chiara and Lorenzo Minotti also left the club following the season's conclusion. Despite being only one point behind third-placed Lazio, Parma finished 6th in the standings."
+        ],
+        "strip_scores": [
+          0.228,
+          0.574,
+          0.454,
+          -0.217,
+          0.009
+        ],
+        "doc_scores": [
+          0.228,
+          0.574,
+          -0.08,
+          -0.027,
+          -0.743,
+          -0.94,
+          0.168,
+          -0.957,
+          -0.708,
+          -0.396
+        ]
+      },
+      "prompt_tokens": 530,
+      "completion_tokens": 40,
+      "ttft_ms": 122.45919599990884,
+      "extra": {
+        "action": "Correct",
+        "label": "Correct",
+        "gold_in_index": true
+      }
+    },
+    {
+      "query_id": "5add1a315542990d50227de0",
+      "question": "What club does the 1993 winner of the Norwich AFL Rising Star award currently coach?",
+      "answer": "The context does not provide sufficient information to answer the question.",
+      "contexts": [],
+      "retrieved_ids": [
+        63475,
+        339622,
+        339624,
+        339623,
+        339621,
+        339625,
+        339620,
+        320564,
+        433684,
+        433687
+      ],
+      "gold_ids": [
+        339621,
+        187052
+      ],
+      "latency_ms": 1056.3287929999206,
+      "stage_latency_ms": {
+        "retrieve": 25.56210500006273,
+        "rerank": 33.54721300001984,
+        "crag": 470.29237100014143,
+        "generate": 526.8920090002212
+      },
+      "action": "Incorrect",
+      "crag": {
+        "action": "Incorrect",
+        "strips": [],
+        "strip_scores": [],
+        "doc_scores": [
+          -0.979,
+          -0.983,
+          -0.98,
+          -0.993,
+          -0.99,
+          -0.993,
+          -0.992,
+          -0.992,
+          -0.894,
+          -0.949
+        ]
+      },
+      "prompt_tokens": 118,
+      "completion_tokens": 13,
+      "ttft_ms": 83.20708700011892,
+      "extra": {
+        "action": "Incorrect",
+        "label": "NoAnswer",
+        "gold_in_index": true
+      }
+    },
+    {
+      "query_id": "5a8fdef65542990a98493578",
+      "question": "Where did the first openly gay football player drafted in the NFL play college football?",
+      "answer": "The first openly gay football player drafted in the NFL who played college football before that was Edwin Alexander Smith, who played college football for Colorado College.",
+      "contexts": [
+        "Ryan Thomas O'Callaghan (born July 19, 1983) is a former American football offensive tackle. He played college football at California and was drafted by the New England Patriots in the fifth round of the 2006 NFL Draft. He also played for the Kansas City Chiefs.",
+        "William Gay (born January 1, 1985) is an American football cornerback for the Pittsburgh Steelers of the National Football League (NFL). He was drafted by the Steelers in the fifth round of the 2007 NFL Draft. He played college football for the University of Louisville.",
+        "Edwin Alexander Smith (born October 23, 1950) is a former American football defensive end who played in the National Football League for the Denver Broncos. He is better known for being the first player born in the Bahamas to be drafted in the NFL. He played college football for Colorado College.",
+        "Leonard Coleman (born January 30, 1962) is a former American football player who played cornerback in the National Football League for the Indianapolis Colts and San Diego Chargers from 1985 to 1989. He played college football at Vanderbilt University and was drafted by the Colts in the first round of the 1984 NFL Draft, the first player drafted by the team following its relocation from Baltimore.",
+        "Jeffrey Scott George (born December 8, 1967) is a former American college and professional football player in the National Football League (NFL) for thirteen seasons during the 1990s and early 2000s. He played college football for the University of Illinois after transferring from Purdue University. He was drafted by the Indianapolis Colts with the first overall pick of the 1990 NFL Draft, and also played for the Atlanta Falcons, Oakland Raiders, Minnesota Vikings, Washington Redskins, and Seattle Seahawks of the NFL."
+      ],
+      "retrieved_ids": [
+        372879,
+        91786,
+        385193,
+        343677,
+        347936,
+        207275,
+        65230,
+        358419,
+        69717,
+        221178
+      ],
+      "gold_ids": [
+        372879,
+        385195
+      ],
+      "latency_ms": 2512.08147700072,
+      "stage_latency_ms": {
+        "retrieve": 23.137927999414387,
+        "rerank": 55.313046000264876,
+        "crag": 1225.7232270003442,
+        "generate": 1207.8714419994867
+      },
+      "action": "Correct",
+      "crag": {
+        "action": "Correct",
+        "strips": [
+          "Ryan Thomas O'Callaghan (born July 19, 1983) is a former American football offensive tackle. He played college football at California and was drafted by the New England Patriots in the fifth round of the 2006 NFL Draft. He also played for the Kansas City Chiefs.",
+          "William Gay (born January 1, 1985) is an American football cornerback for the Pittsburgh Steelers of the National Football League (NFL). He was drafted by the Steelers in the fifth round of the 2007 NFL Draft. He played college football for the University of Louisville.",
+          "Edwin Alexander Smith (born October 23, 1950) is a former American football defensive end who played in the National Football League for the Denver Broncos. He is better known for being the first player born in the Bahamas to be drafted in the NFL. He played college football for Colorado College.",
+          "Leonard Coleman (born January 30, 1962) is a former American football player who played cornerback in the National Football League for the Indianapolis Colts and San Diego Chargers from 1985 to 1989. He played college football at Vanderbilt University and was drafted by the Colts in the first round of the 1984 NFL Draft, the first player drafted by the team following its relocation from Baltimore.",
+          "Jeffrey Scott George (born December 8, 1967) is a former American college and professional football player in the National Football League (NFL) for thirteen seasons during the 1990s and early 2000s. He played college football for the University of Illinois after transferring from Purdue University. He was drafted by the Indianapolis Colts with the first overall pick of the 1990 NFL Draft, and also played for the Atlanta Falcons, Oakland Raiders, Minnesota Vikings, Washington Redskins, and Seattle Seahawks of the NFL."
+        ],
+        "strip_scores": [
+          0.029,
+          0.516,
+          0.297,
+          0.537,
+          0.242
+        ],
+        "doc_scores": [
+          -0.04,
+          -0.251,
+          0.215,
+          0.643,
+          -0.198,
+          0.297,
+          0.537,
+          -0.142,
+          -0.954,
+          0.242
+        ]
+      },
+      "prompt_tokens": 529,
+      "completion_tokens": 30,
+      "ttft_ms": 147.08504699956393,
+      "extra": {
+        "action": "Correct",
+        "label": "Hallucinated",
+        "gold_in_index": true
+      }
+    },
+    {
+      "query_id": "5abadc7d5542996606241646",
+      "question": "the Vancouver Expedition was led by a captain born in which year ?",
+      "answer": "Based on the given contexts, the Vancouver Expedition was led by Captain George Vancouver, who was born in 1757.",
+      "contexts": [
+        "William Robert Broughton (22 March 176214 March 1821) was a British naval officer in the late 18th century. As a Lieutenant in the Royal Navy, he commanded HMS \"Chatham\" as part of the Vancouver Expedition, a voyage of exploration through the Pacific Ocean led by Captain George Vancouver in the early 1790s.",
+        "Captain George Vancouver (22 June 1757 – 10 May 1798) was a British officer of the Royal Navy, best known for his 1791–95 expedition, which explored and charted North America's northwestern Pacific Coast regions, including the coasts of contemporary Alaska, British Columbia, Washington, and Oregon. He also explored the Hawaiian Islands and the southwest coast of Australia.",
+        "Zachary (variously Zacharia or Zechariah) Mudge (22 January 1770 – 22 October 1852) was an officer in the British Royal Navy, best known for serving in the historic Vancouver Expedition.",
+        "Towereroo (born c. 1776, date of death unknown) was the first Hawaiian to visit Europe. He returned to the Hawaiian islands on the Vancouver Expedition in 1792.",
+        "Captain Robert Falcon Scott, (6 June 1868 – 29 March 1912) was a British Royal Navy officer and explorer who led two expeditions to the Antarctic regions: the Discovery Expedition (1901–1904) and the ill-fated Terra Nova Expedition (1910–1913). On the first expedition, he set a new southern record by marching to latitude 82°S and discovered the Polar (Antarctic) Plateau, on which the South Pole is located. On the second venture, Scott led a party of five which reached the South Pole on 17 January 1912, four weeks after Roald Amundsen's Norwegian expedition."
+      ],
+      "retrieved_ids": [
+        65965,
+        65970,
+        65969,
+        65967,
+        65966,
+        359322,
+        139009,
+        224471,
+        457552,
+        164825
+      ],
+      "gold_ids": [
+        65969,
+        65970
+      ],
+      "latency_ms": 2551.186615000006,
+      "stage_latency_ms": {
+        "retrieve": 23.43526499953441,
+        "rerank": 56.89683499986131,
+        "crag": 1049.8184680000122,
+        "generate": 1420.997768000234
+      },
+      "action": "Correct",
+      "crag": {
+        "action": "Correct",
+        "strips": [
+          "William Robert Broughton (22 March 176214 March 1821) was a British naval officer in the late 18th century. As a Lieutenant in the Royal Navy, he commanded HMS \"Chatham\" as part of the Vancouver Expedition, a voyage of exploration through the Pacific Ocean led by Captain George Vancouver in the early 1790s.",
+          "Captain George Vancouver (22 June 1757 – 10 May 1798) was a British officer of the Royal Navy, best known for his 1791–95 expedition, which explored and charted North America's northwestern Pacific Coast regions, including the coasts of contemporary Alaska, British Columbia, Washington, and Oregon. He also explored the Hawaiian Islands and the southwest coast of Australia.",
+          "Zachary (variously Zacharia or Zechariah) Mudge (22 January 1770 – 22 October 1852) was an officer in the British Royal Navy, best known for serving in the historic Vancouver Expedition.",
+          "Towereroo (born c. 1776, date of death unknown) was the first Hawaiian to visit Europe. He returned to the Hawaiian islands on the Vancouver Expedition in 1792.",
+          "Captain Robert Falcon Scott, (6 June 1868 – 29 March 1912) was a British Royal Navy officer and explorer who led two expeditions to the Antarctic regions: the Discovery Expedition (1901–1904) and the ill-fated Terra Nova Expedition (1910–1913). On the first expedition, he set a new southern record by marching to latitude 82°S and discovered the Polar (Antarctic) Plateau, on which the South Pole is located. On the second venture, Scott led a party of five which reached the South Pole on 17 January 1912, four weeks after Roald Amundsen's Norwegian expedition."
+        ],
+        "strip_scores": [
+          0.587,
+          0.667,
+          0.226,
+          0.528,
+          -0.001
+        ],
+        "doc_scores": [
+          -0.183,
+          0.587,
+          0.667,
+          0.226,
+          0.5,
+          -0.005,
+          -0.005,
+          -0.376,
+          -0.085,
+          -0.858
+        ]
+      },
+      "prompt_tokens": 556,
+      "completion_tokens": 27,
+      "ttft_ms": 131.3804439996602,
+      "extra": {
+        "action": "Correct",
+        "label": "Correct",
+        "gold_in_index": true
+      }
+    },
+    {
+      "query_id": "5ae3371e5542994393b9e656",
+      "question": "The Rock and Roll Trio included which early rockabilly singer and father of Fleetwood Mac's Billy Burnette?",
+      "answer": "Dorsey Burnette, the father of Billy Burnette, was a founder member of The Rock and Roll Trio along with his younger brother Johnny Burnette and a friend named Paul Burlison.",
+      "contexts": [
+        "Dorsey Burnette (December 28, 1932 – August 19, 1979) was an American early rockabilly singer. With his younger brother, Johnny Burnette, and a friend named Paul Burlison, he was a founder member of The Rock and Roll Trio. He is also the father of country musician and Fleetwood Mac member Billy Burnette.",
+        "The Rock and Roll Trio were an American rockabilly group formed in Memphis, Tennessee, during the 1950s. They were also known as \"Johnny Burnette and the Rock and Roll Trio\" and the \"Johnny Burnette Trio\". The members of the Trio were Dorsey Burnette, his younger brother Johnny, and a friend Paul Burlison.",
+        "Paul Burlison (February 4, 1929 – September 27, 2003) was an American pioneer rockabilly guitarist and a founding member of The Rock and Roll Trio. Burlison was born in Brownsville, Tennessee, where he was exposed to music at an early age. After a stint in the United States Military, Burlison teamed up with Johnny and Dorsey Burnette to form The Rock and Roll Trio.",
+        "Rocky Burnette (born Jonathan Burnette, 12 June 1953) is an American rock and roll singer/musician and the son of rock and roll musician Johnny Burnette. He is best known for his 1980 hit single \"Tired of Toein' the Line\" which he co-wrote with Ron Coleman, who formerly wrote, recorded and performed with the Brothers Grim and The Everly Brothers.",
+        "Waitin' in School is a rock and roll song written by Johnny Burnette and Dorsey Burnette. The song was recorded by Ricky Nelson, and peaked at number 18 in the U.S \"Billboard\" Hot 100 of 1958. It is considered one of the best examples of Nelson's contributions to rockabilly."
+      ],
+      "retrieved_ids": [
+        349697,
+        349698,
+        349700,
+        349705,
+        388210,
+        349699,
+        349703,
+        388209,
+        23983,
+        459614
+      ],
+      "gold_ids": [
+        349697,
+        349698
+      ],
+      "latency_ms": 3566.6843369999697,
+      "stage_latency_ms": {
+        "retrieve": 33.08017400013341,
+        "rerank": 89.16104799936875,
+        "crag": 1779.0476999998646,
+        "generate": 1665.3562270003022
+      },
+      "action": "Correct",
+      "crag": {
+        "action": "Correct",
+        "strips": [
+          "Dorsey Burnette (December 28, 1932 – August 19, 1979) was an American early rockabilly singer. With his younger brother, Johnny Burnette, and a friend named Paul Burlison, he was a founder member of The Rock and Roll Trio. He is also the father of country musician and Fleetwood Mac member Billy Burnette.",
+          "The Rock and Roll Trio were an American rockabilly group formed in Memphis, Tennessee, during the 1950s. They were also known as \"Johnny Burnette and the Rock and Roll Trio\" and the \"Johnny Burnette Trio\". The members of the Trio were Dorsey Burnette, his younger brother Johnny, and a friend Paul Burlison.",
+          "Paul Burlison (February 4, 1929 – September 27, 2003) was an American pioneer rockabilly guitarist and a founding member of The Rock and Roll Trio. Burlison was born in Brownsville, Tennessee, where he was exposed to music at an early age. After a stint in the United States Military, Burlison teamed up with Johnny and Dorsey Burnette to form The Rock and Roll Trio.",
+          "Rocky Burnette (born Jonathan Burnette, 12 June 1953) is an American rock and roll singer/musician and the son of rock and roll musician Johnny Burnette. He is best known for his 1980 hit single \"Tired of Toein' the Line\" which he co-wrote with Ron Coleman, who formerly wrote, recorded and performed with the Brothers Grim and The Everly Brothers.",
+          "Waitin' in School is a rock and roll song written by Johnny Burnette and Dorsey Burnette. The song was recorded by Ricky Nelson, and peaked at number 18 in the U.S \"Billboard\" Hot 100 of 1958. It is considered one of the best examples of Nelson's contributions to rockabilly."
+        ],
+        "strip_scores": [
+          0.845,
+          0.186,
+          0.202,
+          -0.087,
+          -0.361
+        ],
+        "doc_scores": [
+          0.845,
+          0.055,
+          -0.443,
+          -0.287,
+          -0.619,
+          -0.087,
+          -0.39,
+          -0.396,
+          -0.656,
+          -0.572
+        ]
+      },
+      "prompt_tokens": 557,
+      "completion_tokens": 40,
+      "ttft_ms": 163.8483279994034,
+      "extra": {
+        "action": "Correct",
+        "label": "Correct",
+        "gold_in_index": true
+      }
+    },
+    {
+      "query_id": "5a74861555429979e2882972",
+      "question": "What internationally distinguished tropical diseases, nutrition, human, medical, biological and life sciences expert found a way to fight a group of blood disorders typically inherited from a person's parents?",
+      "answer": "Wayne M. Meyers, Dr. PhD, discovered a method to combat a group of blood disorders typically inherited from a person's parents, which includes conditions such as Hansen's disease (leprosy), Buruli ulcer, and filarial diseases.",
+      "contexts": [
+        "Chukwuedu Nathaniel II Nwokolo (19 April 1921 – 18 May 2014) was an internationally distinguished tropical diseases, nutrition, human, medical, biological and life sciences expert; plus research scientist, scholar, pioneer medical doctor, author, humanitarian and acclaimed professor of medicine. He was Nigerian, and is listed in the \"Who's Who in Nigeria\" series by Newswatch. Nwokolo was outstandingly recognised worldwide for discovering and mapping out the area of paragonimiasis lung disease in Eastern Nigeria, with a study of the disease in Africa and clinical research for its control.",
+        "Wayne M. Meyers, MD, PhD is an American physician, microbiologist, chemist, humanitarian, and medical missionary. He pioneered new medical techniques, discovered new infectious agents, trained countless researchers and scientists.",
+        "Meyers has dedicated his life to improving the health and wellbeing of human beings from all walks of life and from all corners of the globe. He served many years as a medical missionary in Africa and continues to travel to exotic places to help end human suffering from scourges that the World Health Organization (WHO) considers the neglected tropical diseases. He is particularly well known for his work with Hansen’s disease (Leprosy), Buruli ulcer, and filarial diseases.",
+        "Sir Alimuddin Zumla KBE, PhD, FRCP, FRCPath, FRSB (born 15 May 1955) is a British Zambian professor of infectious diseases and international health at University College London Medical School. He specialises in infectious and tropical diseases, clinical immunology, and internal medicine, with a special interest in HIV/AIDS, respiratory infections, and diseases of poverty. He is internationally renowned for his extensive outputs and leadership of infectious/tropical diseases research and capacity development activities.",
+        "Paul Saltman (11 April 1928 – 27 August 1999) was a Professor of Biology at the University of California, San Diego, for more than three decades, and an internationally renowned nutrition expert. He received a B.S. in chemistry (1949) and Ph.D."
+      ],
+      "retrieved_ids": [
+        285375,
+        465757,
+        285372,
+        62123,
+        468497,
+        362579,
+        124690,
+        408694,
+        84254,
+        162896
+      ],
+      "gold_ids": [
+        285375,
+        62123
+      ],
+      "latency_ms": 3750.3376390004632,
+      "stage_latency_ms": {
+        "retrieve": 31.542330999400292,
+        "rerank": 132.19300499986275,
+        "crag": 1486.8985530001737,
+        "generate": 2099.6666290002395
+      },
+      "action": "Ambiguous",
+      "crag": {
+        "action": "Ambiguous",
+        "strips": [
+          "Chukwuedu Nathaniel II Nwokolo (19 April 1921 – 18 May 2014) was an internationally distinguished tropical diseases, nutrition, human, medical, biological and life sciences expert; plus research scientist, scholar, pioneer medical doctor, author, humanitarian and acclaimed professor of medicine. He was Nigerian, and is listed in the \"Who's Who in Nigeria\" series by Newswatch. Nwokolo was outstandingly recognised worldwide for discovering and mapping out the area of paragonimiasis lung disease in Eastern Nigeria, with a study of the disease in Africa and clinical research for its control.",
+          "Wayne M. Meyers, MD, PhD is an American physician, microbiologist, chemist, humanitarian, and medical missionary. He pioneered new medical techniques, discovered new infectious agents, trained countless researchers and scientists.",
+          "Meyers has dedicated his life to improving the health and wellbeing of human beings from all walks of life and from all corners of the globe. He served many years as a medical missionary in Africa and continues to travel to exotic places to help end human suffering from scourges that the World Health Organization (WHO) considers the neglected tropical diseases. He is particularly well known for his work with Hansen’s disease (Leprosy), Buruli ulcer, and filarial diseases.",
+          "Sir Alimuddin Zumla KBE, PhD, FRCP, FRCPath, FRSB (born 15 May 1955) is a British Zambian professor of infectious diseases and international health at University College London Medical School. He specialises in infectious and tropical diseases, clinical immunology, and internal medicine, with a special interest in HIV/AIDS, respiratory infections, and diseases of poverty. He is internationally renowned for his extensive outputs and leadership of infectious/tropical diseases research and capacity development activities.",
+          "Paul Saltman (11 April 1928 – 27 August 1999) was a Professor of Biology at the University of California, San Diego, for more than three decades, and an internationally renowned nutrition expert. He received a B.S. in chemistry (1949) and Ph.D."
+        ],
+        "strip_scores": [
+          -0.111,
+          -0.18,
+          0.218,
+          0.35,
+          0.047
+        ],
+        "doc_scores": [
+          0.127,
+          0.194,
+          0.35,
+          -0.829,
+          -0.388,
+          -0.213,
+          -0.857,
+          -0.54,
+          -0.612,
+          -0.976
+        ]
+      },
+      "prompt_tokens": 605,
+      "completion_tokens": 52,
+      "ttft_ms": 142.74655900044309,
+      "extra": {
+        "action": "Ambiguous",
+        "label": "Hallucinated",
+        "gold_in_index": true
+      }
+    },
+    {
+      "query_id": "5ac298ed554299218029dab2",
+      "question": "How many national player of the year awards did the 2015 Diamond Head Classic tournament's mvp win in 2016?",
+      "answer": "Based on the given contexts, the 2015 Diamond Head Classic tournament's MVP, Chavano Rainier \"Buddy\" Hield, won four major national player of the year awards in 2016. These awards include the John R. Wooden Award, the Naismith Award, \"Sporting News\" Player of the Year, and the Oscar Robertson Trophy.",
+      "contexts": [
+        "14-ranked Iowa State defeated Boise State 70–66 to win the tournament championship. DeAndre Kane was named the tournament's MVP.",
+        "11-ranked Wichita State to with the tournament championship. Kevin Larsen was named the tournament's MVP.",
+        "20-ranked UNLV to win the tournament championship. Mike Gerrity was named the tournament's MVP.",
+        "3-ranked Arizona defeated No. 17-ranked San Diego State to win the tournament championship. Solomon Hill was named the tournament's MVP.",
+        "Chavano Rainier \"Buddy\" Hield (born December 17, 1993) is a Bahamian professional basketball player for the Sacramento Kings of the National Basketball Association (NBA). He was named the Big 12 Conference Men's Basketball Player of the Year in 2015 and 2016, and in 2016, he received four major national player of the year awards—the John R. Wooden Award, the Naismith Award, \"Sporting News\" Player of the Year, and the Oscar Robertson Trophy."
+      ],
+      "retrieved_ids": [
+        62768,
+        62772,
+        62773,
+        62770,
+        62769,
+        62765,
+        62774,
+        62766,
+        226554,
+        62767
+      ],
+      "gold_ids": [
+        62768,
+        62767
+      ],
+      "latency_ms": 4566.174489999867,
+      "stage_latency_ms": {
+        "retrieve": 25.9447349999391,
+        "rerank": 94.89820199996757,
+        "crag": 1412.811598999724,
+        "generate": 3032.4830720001046
+      },
+      "action": "Correct",
+      "crag": {
+        "action": "Correct",
+        "strips": [
+          "14-ranked Iowa State defeated Boise State 70–66 to win the tournament championship. DeAndre Kane was named the tournament's MVP.",
+          "11-ranked Wichita State to with the tournament championship. Kevin Larsen was named the tournament's MVP.",
+          "20-ranked UNLV to win the tournament championship. Mike Gerrity was named the tournament's MVP.",
+          "3-ranked Arizona defeated No. 17-ranked San Diego State to win the tournament championship. Solomon Hill was named the tournament's MVP.",
+          "Chavano Rainier \"Buddy\" Hield (born December 17, 1993) is a Bahamian professional basketball player for the Sacramento Kings of the National Basketball Association (NBA). He was named the Big 12 Conference Men's Basketball Player of the Year in 2015 and 2016, and in 2016, he received four major national player of the year awards—the John R. Wooden Award, the Naismith Award, \"Sporting News\" Player of the Year, and the Oscar Robertson Trophy."
+        ],
+        "strip_scores": [
+          -0.878,
+          -0.884,
+          -0.872,
+          -0.841,
+          0.789
+        ],
+        "doc_scores": [
+          -0.904,
+          -0.897,
+          -0.929,
+          -0.913,
+          -0.937,
+          -0.947,
+          -0.941,
+          -0.935,
+          -0.894,
+          0.744
+        ]
+      },
+      "prompt_tokens": 377,
+      "completion_tokens": 80,
+      "ttft_ms": 88.66095400026097,
+      "extra": {
+        "action": "Correct",
+        "label": "Hallucinated",
+        "gold_in_index": true
+      }
+    },
+    {
+      "query_id": "5a828e1255429966c78a6a54",
+      "question": "What do Bob Marley and Timo Kotipelto have in common?",
+      "answer": "The context does not provide sufficient information to answer the question about what Bob Marley and Timo Kotipelto have in common.",
+      "contexts": [],
+      "retrieved_ids": [
+        128835,
+        128831,
+        179515,
+        179519,
+        128832,
+        441701,
+        128830,
+        128833,
+        222931,
+        222932
+      ],
+      "gold_ids": [
+        179513,
+        128835
+      ],
+      "latency_ms": 2067.6395219998085,
+      "stage_latency_ms": {
+        "retrieve": 30.77596699949936,
+        "rerank": 94.87139800057776,
+        "crag": 571.376212999894,
+        "generate": 1370.574943000065
+      },
+      "action": "Incorrect",
+      "crag": {
+        "action": "Incorrect",
+        "strips": [],
+        "strip_scores": [],
+        "doc_scores": [
+          -0.805,
+          -0.771,
+          -0.756,
+          -0.765,
+          -0.678,
+          -0.639,
+          -0.707,
+          -0.552,
+          -0.529,
+          -0.758
+        ]
+      },
+      "prompt_tokens": 113,
+      "completion_tokens": 27,
+      "ttft_ms": 111.21892500068498,
+      "extra": {
+        "action": "Incorrect",
+        "label": "NoAnswer",
+        "gold_in_index": true
+      }
+    },
+    {
+      "query_id": "5adc95655542994ed6169b9f",
+      "question": "Which of Brandon Thaxton or Jon Turteltaub has the highest filming skills ",
+      "answer": "Based on the given contexts, there isn't enough information to determine which of Brandon Thaxton or Jon Turteltaub has the higher filming skills. Both individuals have been involved in filmmaking projects, but specific details about their skill levels or achievements aren't provided for either person.",
+      "contexts": [
+        "Brandon Thaxton (born February 24, 1988), known as Brandon '2 MILL' Thaxton, is an American film director, film producer, actor and entrepreneur. His career began in 2006 within Visual and Performing Arts Magnet at the Tri-Cities High School by contributing to leading roles in various school productions. His most notable appearance during high school was in the film \"Diary of a Mad Black Woman\".",
+        "Errol Sadler (born September 16, 1982) is an American film producer. Sadler is the Founder/CEO of Supremacy Films in Atlanta, Georgia based film production company that specializes in the development, packaging, financing and production of independent films. Sadler also works closely with Brandon Thaxton on numerous film productions in the Atlanta area.",
+        "Think Big is a 1990 adventure/comedy film directed by Jon Turteltaub starring the \"Barbarian Brothers\" Peter and David Paul. The film follows the misadventures of a pair of twin brother truck drivers who aide a teenage runaway. Also features cameos from character actors such as Michael Winslow, Richard Moll, Richard Kiel.",
+        "The Sorcerer's Apprentice is a 2010 American fantasy film produced by Jerry Bruckheimer, directed by Jon Turteltaub, and released by Walt Disney Pictures, the team behind the \"National Treasure\" franchise. The film stars Nicolas Cage, Jay Baruchel, Alfred Molina, Teresa Palmer, Monica Bellucci.",
+        "The Kid (marketed as Disney's The Kid) is a 2000 American fantasy comedy-drama film, directed by Jon Turteltaub and written by Audrey Wells. It co-stars Bruce Willis and Spencer Breslin, with Emily Mortimer, Lily Tomlin, Chi McBride, and Jean Smart playing smaller roles."
+      ],
+      "retrieved_ids": [
+        41792,
+        41790,
+        41791,
+        41794,
+        50591,
+        2682,
+        41795,
+        41793,
+        50593,
+        41789
+      ],
+      "gold_ids": [
+        41792,
+        41790
+      ],
+      "latency_ms": 3976.7506640000647,
+      "stage_latency_ms": {
+        "retrieve": 26.924072999463533,
+        "rerank": 111.33127999983117,
+        "crag": 1295.4691669992826,
+        "generate": 2542.9513970002517
+      },
+      "action": "Ambiguous",
+      "crag": {
+        "action": "Ambiguous",
+        "strips": [
+          "Brandon Thaxton (born February 24, 1988), known as Brandon '2 MILL' Thaxton, is an American film director, film producer, actor and entrepreneur. His career began in 2006 within Visual and Performing Arts Magnet at the Tri-Cities High School by contributing to leading roles in various school productions. His most notable appearance during high school was in the film \"Diary of a Mad Black Woman\".",
+          "Errol Sadler (born September 16, 1982) is an American film producer. Sadler is the Founder/CEO of Supremacy Films in Atlanta, Georgia based film production company that specializes in the development, packaging, financing and production of independent films. Sadler also works closely with Brandon Thaxton on numerous film productions in the Atlanta area.",
+          "Think Big is a 1990 adventure/comedy film directed by Jon Turteltaub starring the \"Barbarian Brothers\" Peter and David Paul. The film follows the misadventures of a pair of twin brother truck drivers who aide a teenage runaway. Also features cameos from character actors such as Michael Winslow, Richard Moll, Richard Kiel.",
+          "The Sorcerer's Apprentice is a 2010 American fantasy film produced by Jerry Bruckheimer, directed by Jon Turteltaub, and released by Walt Disney Pictures, the team behind the \"National Treasure\" franchise. The film stars Nicolas Cage, Jay Baruchel, Alfred Molina, Teresa Palmer, Monica Bellucci.",
+          "The Kid (marketed as Disney's The Kid) is a 2000 American fantasy comedy-drama film, directed by Jon Turteltaub and written by Audrey Wells. It co-stars Bruce Willis and Spencer Breslin, with Emily Mortimer, Lily Tomlin, Chi McBride, and Jean Smart playing smaller roles."
+        ],
+        "strip_scores": [
+          -0.117,
+          -0.588,
+          -0.621,
+          -0.562,
+          -0.619
+        ],
+        "doc_scores": [
+          -0.117,
+          -0.674,
+          -0.697,
+          -0.588,
+          -0.625,
+          -0.702,
+          -0.656,
+          -0.621,
+          -0.562,
+          -0.619
+        ]
+      },
+      "prompt_tokens": 524,
+      "completion_tokens": 58,
+      "ttft_ms": 161.76614500000142,
+      "extra": {
+        "action": "Ambiguous",
+        "label": "Correct",
+        "gold_in_index": true
+      }
+    },
+    {
+      "query_id": "5ae7eccd5542993210983fbf",
+      "question": "In what year was the writer of the song \"Fear of the Dark\" born?",
+      "answer": "The context does not provide sufficient information to answer the question about when the writer of \"Fear of the Dark,\" which includes \"Fear of the Dark\" by Iron Maiden, was born.",
+      "contexts": [
+        "\"Fear of the Dark\" is a song by British heavy metal band Iron Maiden. Written by Steve Harris, the band's bass player and primary songwriter, it serves as the title track to Iron Maiden's 1992 album \"Fear of the Dark\".",
+        "\"Be Quick or Be Dead\" is a song by English heavy metal band Iron Maiden, released as the first single release from their ninth studio album \"Fear of the Dark\", released in 1992.",
+        "\"The Devil in the Dark\" is a episode of the American science fiction television series, \"\", first airing on March 9, 1967, and repeating on June 15, 1967. It was written by Gene L. Coon and directed by Joseph Pevney.",
+        "George Arthur \"Rusty\" Cundieff (born December 13, 1960) is an American film and television director, actor, and writer known for his work on Fear of a Black Hat (1993), Tales from the Hood (1995), and Chappelle's Show (2003-2006).",
+        "It aired in Australia on ABC (27 April 1987 - 13 May 1997)."
+      ],
+      "retrieved_ids": [
+        217477,
+        334546,
+        357470,
+        77327,
+        334545,
+        120422,
+        269304,
+        376404,
+        453268,
+        442556
+      ],
+      "gold_ids": [
+        217477,
+        374573
+      ],
+      "latency_ms": 2851.512451000417,
+      "stage_latency_ms": {
+        "retrieve": 27.12160099963512,
+        "rerank": 79.6004379999431,
+        "crag": 1191.0548839996409,
+        "generate": 1553.699324000263
+      },
+      "action": "Correct",
+      "crag": {
+        "action": "Correct",
+        "strips": [
+          "\"Fear of the Dark\" is a song by British heavy metal band Iron Maiden. Written by Steve Harris, the band's bass player and primary songwriter, it serves as the title track to Iron Maiden's 1992 album \"Fear of the Dark\".",
+          "\"Be Quick or Be Dead\" is a song by English heavy metal band Iron Maiden, released as the first single release from their ninth studio album \"Fear of the Dark\", released in 1992.",
+          "\"The Devil in the Dark\" is a episode of the American science fiction television series, \"\", first airing on March 9, 1967, and repeating on June 15, 1967. It was written by Gene L. Coon and directed by Joseph Pevney.",
+          "George Arthur \"Rusty\" Cundieff (born December 13, 1960) is an American film and television director, actor, and writer known for his work on Fear of a Black Hat (1993), Tales from the Hood (1995), and Chappelle's Show (2003-2006).",
+          "It aired in Australia on ABC (27 April 1987 - 13 May 1997)."
+        ],
+        "strip_scores": [
+          -0.581,
+          -0.539,
+          -0.479,
+          0.829,
+          -0.11
+        ],
+        "doc_scores": [
+          -0.581,
+          -0.539,
+          -0.614,
+          -0.763,
+          -0.76,
+          -0.868,
+          -0.898,
+          0.829,
+          -0.904,
+          -0.795
+        ]
+      },
+      "prompt_tokens": 402,
+      "completion_tokens": 38,
+      "ttft_ms": 96.2565239997275,
+      "extra": {
+        "action": "Correct",
+        "label": "NoAnswer",
+        "gold_in_index": true
+      }
+    },
+    {
+      "query_id": "5a80a740554299485f59867c",
+      "question": "Which sports talk show is hosted by studio analyst Alan Hahn and former professional hockey player Rick DiPietro?",
+      "answer": "Based on the given contexts, the sports talk show hosted by studio analyst Alan Hahn and former professional hockey player Rick DiPietro is \"The Hahn & Humpty Show\". This show airs on WEPN-FM in New York City with co-host Rick DiPietro.",
+      "contexts": [
+        "Alan William Hahn (born June 19, 1971) is a studio analyst during New York Knicks basketball games on the MSG Network and the co-host of a daily sports talk radio show, \"The Hahn & Humpty Show\", on WEPN-FM in New York City with co-host and former Islander Rick DiPietro.",
+        "He was the first overall selection by the New York Islanders in the 2000 NHL Entry Draft. DiPietro is currently a NY sports talk show host on ESPN 98.7 FM. He co-hosts the \"Hahn & Humpty show\" with Alan Hahn.",
+        "Louis Rams pregame shows on 101 ESPN up until the team's move to Los Angeles in January 2016. He hosted this show with former NFL coach Jim Hanifan, before Hanifan was replaced by Rick Venturi in 2009, and then with Anthony Stalter up until the team's departure. In 2009 and 2010, he was also the television voice of Southern Illinois Edwardsville Cougars basketball on CCIN.",
+        "He used to be the host of the popular CCIN television program \"Chalk Talk\", with Malcolm Briggs, McGraw Millhaven, and Tony Twist.",
+        "The Herd with Colin Cowherd is a sports talk radio show hosted by Colin Cowherd on Fox Sports Radio and Fox Sports 1. The show features commentary on the day's sports news, perspective on other news stories, and interviews with celebrities, sports analysts and sports figures."
+      ],
+      "retrieved_ids": [
+        311489,
+        311485,
+        467428,
+        78981,
+        68824,
+        66464,
+        29601,
+        11091,
+        123684,
+        112987
+      ],
+      "gold_ids": [
+        311489,
+        311485
+      ],
+      "latency_ms": 3715.6652290004786,
+      "stage_latency_ms": {
+        "retrieve": 24.395618999733415,
+        "rerank": 58.95975000021281,
+        "crag": 1286.7535380000845,
+        "generate": 2345.504992000315
+      },
+      "action": "Correct",
+      "crag": {
+        "action": "Correct",
+        "strips": [
+          "Alan William Hahn (born June 19, 1971) is a studio analyst during New York Knicks basketball games on the MSG Network and the co-host of a daily sports talk radio show, \"The Hahn & Humpty Show\", on WEPN-FM in New York City with co-host and former Islander Rick DiPietro.",
+          "He was the first overall selection by the New York Islanders in the 2000 NHL Entry Draft. DiPietro is currently a NY sports talk show host on ESPN 98.7 FM. He co-hosts the \"Hahn & Humpty show\" with Alan Hahn.",
+          "Louis Rams pregame shows on 101 ESPN up until the team's move to Los Angeles in January 2016. He hosted this show with former NFL coach Jim Hanifan, before Hanifan was replaced by Rick Venturi in 2009, and then with Anthony Stalter up until the team's departure. In 2009 and 2010, he was also the television voice of Southern Illinois Edwardsville Cougars basketball on CCIN.",
+          "He used to be the host of the popular CCIN television program \"Chalk Talk\", with Malcolm Briggs, McGraw Millhaven, and Tony Twist.",
+          "The Herd with Colin Cowherd is a sports talk radio show hosted by Colin Cowherd on Fox Sports Radio and Fox Sports 1. The show features commentary on the day's sports news, perspective on other news stories, and interviews with celebrities, sports analysts and sports figures."
+        ],
+        "strip_scores": [
+          0.791,
+          -0.034,
+          -0.626,
+          -0.433,
+          -0.707
+        ],
+        "doc_scores": [
+          0.791,
+          0.158,
+          -0.827,
+          -0.729,
+          -0.774,
+          -0.912,
+          -0.89,
+          -0.733,
+          -0.865,
+          -0.707
+        ]
+      },
+      "prompt_tokens": 472,
+      "completion_tokens": 60,
+      "ttft_ms": 105.86313400017389,
+      "extra": {
+        "action": "Correct",
+        "label": "Hallucinated",
+        "gold_in_index": true
+      }
+    },
+    {
+      "query_id": "5ac247325542994d76dccf05",
+      "question": "The Supreme Court Justice who delivered the majority opinion in the Lewis v. Clarke case is the first Supreme Court justice of what heritage?",
+      "answer": "Based on the given contexts, the Supreme Court Justice who delivered the majority opinion in the Lewis v. Clarke case is William Scott, whose heritage is described as American.",
+      "contexts": [
+        "Justice Sonia Sotomayor delivered the majority opinion. Justice Clarence Thomas and Justice Ruth Bader Ginsburg each wrote concurring opinions that both said that tribal sovereign immunity does not apply in suits arising from commercial activity off of tribal territory. Justice Neil Gorsuch was not involved in the discussion or decision of this case.",
+        "William Scott (June 7, 1804 – 1862) was an American lawyer and judge who served on the Supreme Court of Missouri from 1841 to 1849 and from 1851 to 1862. He also served on the Jefferson City Circuit Court. Justice Scott was the author of the majority opinion in \"Scott v.",
+        "Thurgood Marshall (July 2, 1908January 24, 1993) was an Associate Justice of the Supreme Court of the United States, serving from October 1967 until October 1991. Marshall was the Court's 96th justice and its first African-American justice. Prior to his judicial service, he successfully argued several cases before the Supreme Court, including \"Brown v.",
+        "Oliver Wendell Holmes Jr. ( ; March 8, 1841 – March 6, 1935) was an American jurist who served as an Associate Justice of the Supreme Court of the United States from 1902 to 1932, and as Acting Chief Justice of the United States from January–February 1930. Noted for his long service, his concise and pithy opinions and his deference to the decisions of elected legislatures, he is one of the most widely cited United States Supreme Court justices in history, particularly for his \"clear and present danger\" opinion for a unanimous Court in the 1919 case of \"Schenck v.",
+        "United States\", and is one of the most influential American common law judges, honored during his lifetime in Great Britain as well as the United States. Holmes retired from the Court at the age of 90 years, making him the oldest Justice in the Supreme Court's history. He also served as an Associate Justice and as Chief Justice on the Massachusetts Supreme Judicial Court, and was Weld Professor of Law at the Harvard Law School, of which he was an alumnus."
+      ],
+      "retrieved_ids": [
+        241477,
+        118846,
+        271624,
+        19910,
+        43185,
+        16090,
+        72371,
+        5907,
+        162166,
+        122969
+      ],
+      "gold_ids": [
+        241477,
+        241478
+      ],
+      "latency_ms": 3361.0458279999875,
+      "stage_latency_ms": {
+        "retrieve": 28.256257000066398,
+        "rerank": 85.31412899992574,
+        "crag": 1506.3410419998036,
+        "generate": 1741.085523000038
+      },
+      "action": "Ambiguous",
+      "crag": {
+        "action": "Ambiguous",
+        "strips": [
+          "Justice Sonia Sotomayor delivered the majority opinion. Justice Clarence Thomas and Justice Ruth Bader Ginsburg each wrote concurring opinions that both said that tribal sovereign immunity does not apply in suits arising from commercial activity off of tribal territory. Justice Neil Gorsuch was not involved in the discussion or decision of this case.",
+          "William Scott (June 7, 1804 – 1862) was an American lawyer and judge who served on the Supreme Court of Missouri from 1841 to 1849 and from 1851 to 1862. He also served on the Jefferson City Circuit Court. Justice Scott was the author of the majority opinion in \"Scott v.",
+          "Thurgood Marshall (July 2, 1908January 24, 1993) was an Associate Justice of the Supreme Court of the United States, serving from October 1967 until October 1991. Marshall was the Court's 96th justice and its first African-American justice. Prior to his judicial service, he successfully argued several cases before the Supreme Court, including \"Brown v.",
+          "Oliver Wendell Holmes Jr. ( ; March 8, 1841 – March 6, 1935) was an American jurist who served as an Associate Justice of the Supreme Court of the United States from 1902 to 1932, and as Acting Chief Justice of the United States from January–February 1930. Noted for his long service, his concise and pithy opinions and his deference to the decisions of elected legislatures, he is one of the most widely cited United States Supreme Court justices in history, particularly for his \"clear and present danger\" opinion for a unanimous Court in the 1919 case of \"Schenck v.",
+          "United States\", and is one of the most influential American common law judges, honored during his lifetime in Great Britain as well as the United States. Holmes retired from the Court at the age of 90 years, making him the oldest Justice in the Supreme Court's history. He also served as an Associate Justice and as Chief Justice on the Massachusetts Supreme Judicial Court, and was Weld Professor of Law at the Harvard Law School, of which he was an alumnus."
+        ],
+        "strip_scores": [
+          -0.461,
+          -0.372,
+          -0.162,
+          -0.504,
+          -0.357
+        ],
+        "doc_scores": [
+          -0.412,
+          -0.598,
+          -0.697,
+          -0.642,
+          -0.74,
+          -0.362,
+          -0.069,
+          -0.494,
+          -0.695,
+          -0.702
+        ]
+      },
+      "prompt_tokens": 631,
+      "completion_tokens": 34,
+      "ttft_ms": 179.2005359993709,
+      "extra": {
+        "action": "Ambiguous",
+        "label": "Hallucinated",
+        "gold_in_index": true
+      }
+    },
+    {
+      "query_id": "5a832e7f5542990548d0b1c0",
+      "question": "What Hungarian composer wrote a piece for solo piano which contained Romanian, Arabic, and North African rhythmic influences?",
+      "answer": "Béla Bartók, the Hungarian composer who lived from 1881 to 1945, wrote a piece for solo piano that contained Romanian, Arabic, and North African rhythmic influences. Specifically, his sonata, Sz. 55, BB. 69, was composed in 1915 and features these musical elements.",
+      "contexts": [
+        "Sonatina, Sz. 55, BB. 69 is a piece for solo piano written in 1915 by Hungarian composer Béla Bartók.",
+        "Feuille d'Album (S.165) is a solo piano piece by Hungarian composer and virtuoso pianist Franz Liszt, composed in 1841 and published in 1844.",
+        "Ballade No. 1 in D-flat major, S.170, is a solo piano piece by the Hungarian composer Franz Liszt, composed between 1845 and 1848. In the original edition it contained the title \"\"Le Chant Du Croisé\"\" or \"\"The Chant of the Crusader\"\".",
+        "Invention is an early composition by Hungarian composer György Ligeti. It is scored for solo piano and was composed in 1948.",
+        "Contrasts (Sz. 111, BB 116) is a 1938 composition scored for clarinet-violin-piano trio by Béla Bartók (1881–1945). It is based on Hungarian and Romanian dance melodies and has three movements with a combined duration of 17–20 minutes."
+      ],
+      "retrieved_ids": [
+        15281,
+        429126,
+        41105,
+        429128,
+        254738,
+        429127,
+        480060,
+        328476,
+        476329,
+        111727
+      ],
+      "gold_ids": [
+        5512,
+        15281
+      ],
+      "latency_ms": 4738.100988999577,
+      "stage_latency_ms": {
+        "retrieve": 29.436815000735805,
+        "rerank": 74.48554600068746,
+        "crag": 1714.0206679996481,
+        "generate": 2920.119334999981
+      },
+      "action": "Correct",
+      "crag": {
+        "action": "Correct",
+        "strips": [
+          "Sonatina, Sz. 55, BB. 69 is a piece for solo piano written in 1915 by Hungarian composer Béla Bartók.",
+          "Feuille d'Album (S.165) is a solo piano piece by Hungarian composer and virtuoso pianist Franz Liszt, composed in 1841 and published in 1844.",
+          "Ballade No. 1 in D-flat major, S.170, is a solo piano piece by the Hungarian composer Franz Liszt, composed between 1845 and 1848. In the original edition it contained the title \"\"Le Chant Du Croisé\"\" or \"\"The Chant of the Crusader\"\".",
+          "Invention is an early composition by Hungarian composer György Ligeti. It is scored for solo piano and was composed in 1948.",
+          "Contrasts (Sz. 111, BB 116) is a 1938 composition scored for clarinet-violin-piano trio by Béla Bartók (1881–1945). It is based on Hungarian and Romanian dance melodies and has three movements with a combined duration of 17–20 minutes."
+        ],
+        "strip_scores": [
+          0.883,
+          0.855,
+          0.867,
+          0.844,
+          0.822
+        ],
+        "doc_scores": [
+          0.824,
+          0.887,
+          0.855,
+          0.847,
+          0.844,
+          0.776,
+          0.747,
+          0.807,
+          0.725,
+          0.71
+        ]
+      },
+      "prompt_tokens": 409,
+      "completion_tokens": 77,
+      "ttft_ms": 118.1048849994113,
+      "extra": {
+        "action": "Correct",
+        "label": "Correct",
+        "gold_in_index": true
+      }
+    },
+    {
+      "query_id": "5a730afd5542992359bc3212",
+      "question": "Who is older, Butch Carter or Cris Carter?",
+      "answer": "Based on the provided contexts, Butch Carter is older than Cris Carter.",
+      "contexts": [
+        "Clarence Eugene \"Butch\" Carter (born June 11, 1958) is a retired American basketball player and coach. He is the older brother of retired NFL wide receiver Cris Carter.",
+        "Graduel Christopher Darin \"Cris\" Carter (born November 25, 1965) is a former American football player in the National Football League. He was a wide receiver for the Philadelphia Eagles (1987–89), the Minnesota Vikings (1990–2001) and the Miami Dolphins (2002).",
+        "Duron Carter (born March 22, 1991) is a Canadian football wide receiver for the Saskatchewan Roughriders of the Canadian Football League (CFL). Carter was a member of the Montreal Alouettes prior to signing with Saskatchewan on January 25, 2017 as a free agent. He is the son of Pro Football Hall of Fame player Cris Carter, and played college football at Ohio State and Coffeyville Community College, but off-field issues and academic ineligibility prevented him continuing to play in Division I football.",
+        "John William \"Jack\" Carter (born July 3, 1947) is an American businessman and politician who unsuccessfully ran for the United States Senate in Nevada in 2006. Carter is the eldest child of former President Jimmy Carter and former First Lady Rosalynn Carter.",
+        "He has made occasional television appearances and starred in his own reality shows, \"House of Carters\" and \"I (Heart) Nick Carter\". He gained fame in the mid 1990s and early 2000s as a teen idol. He is also the older brother of singer Aaron Carter and the late Leslie Carter."
+      ],
+      "retrieved_ids": [
+        442399,
+        442397,
+        233489,
+        446572,
+        23832,
+        140618,
+        165564,
+        146155,
+        28117,
+        135713
+      ],
+      "gold_ids": [
+        442399,
+        442397
+      ],
+      "latency_ms": 2271.209651999925,
+      "stage_latency_ms": {
+        "retrieve": 23.215371000333107,
+        "rerank": 67.96524999936082,
+        "crag": 1266.7983720002667,
+        "generate": 913.1961479997699
+      },
+      "action": "Correct",
+      "crag": {
+        "action": "Correct",
+        "strips": [
+          "Clarence Eugene \"Butch\" Carter (born June 11, 1958) is a retired American basketball player and coach. He is the older brother of retired NFL wide receiver Cris Carter.",
+          "Graduel Christopher Darin \"Cris\" Carter (born November 25, 1965) is a former American football player in the National Football League. He was a wide receiver for the Philadelphia Eagles (1987–89), the Minnesota Vikings (1990–2001) and the Miami Dolphins (2002).",
+          "Duron Carter (born March 22, 1991) is a Canadian football wide receiver for the Saskatchewan Roughriders of the Canadian Football League (CFL). Carter was a member of the Montreal Alouettes prior to signing with Saskatchewan on January 25, 2017 as a free agent. He is the son of Pro Football Hall of Fame player Cris Carter, and played college football at Ohio State and Coffeyville Community College, but off-field issues and academic ineligibility prevented him continuing to play in Division I football.",
+          "John William \"Jack\" Carter (born July 3, 1947) is an American businessman and politician who unsuccessfully ran for the United States Senate in Nevada in 2006. Carter is the eldest child of former President Jimmy Carter and former First Lady Rosalynn Carter.",
+          "He has made occasional television appearances and starred in his own reality shows, \"House of Carters\" and \"I (Heart) Nick Carter\". He gained fame in the mid 1990s and early 2000s as a teen idol. He is also the older brother of singer Aaron Carter and the late Leslie Carter."
+        ],
+        "strip_scores": [
+          0.802,
+          0.018,
+          0.249,
+          0.158,
+          0.324
+        ],
+        "doc_scores": [
+          0.802,
+          0.018,
+          0.271,
+          0.158,
+          -0.043,
+          -0.322,
+          -0.547,
+          -0.471,
+          -0.376,
+          -0.367
+        ]
+      },
+      "prompt_tokens": 500,
+      "completion_tokens": 17,
+      "ttft_ms": 130.27391899959184,
+      "extra": {
+        "action": "Correct",
+        "label": "Hallucinated",
+        "gold_in_index": true
+      }
+    },
+    {
+      "query_id": "5a8924d7554299669944a4c2",
+      "question": "What was the profession of a former football referee from a country that is part of the United Kingdom that shares land borders with Scotland to the north and Wales to the west?",
+      "answer": "Based on the given contexts, the professional career mentioned involves someone who has been involved in refereeing football matches. However, no specific country's name is provided in the context directly related to the profession. Therefore, I cannot determine which exact country you're referring to without additional information.",
+      "contexts": [
+        "David B. Allison (born 27 September 1948) is an English former football referee, who operated in the English Football League and Premier League. During his time on the List he was based in Lancaster and was by profession a teacher.",
+        "The Home Nations, or Home Countries, refers collectively to England, Scotland, Wales, and Northern Ireland (countries of the United Kingdom), and in certain sports (e.g. Rugby football) contexts, to England, Scotland, Wales and the whole island of Ireland. The term \"Home Nations\" is used in this second sense partly because Northern Ireland and the Republic of Ireland have a unified association structure in certain sports, such as the Irish Rugby Football Union.",
+        "Lencie Fred (born 21 March 1968) is the current Referee Development Officer of the Vanuatu Football Federation. Fred is a former international association football referee from Vanuatu. He was the first referee from his country to be included on the FIFA list of referees.",
+        "Fred started refereeing at a young age and was named as an assistant referee for the 1996 Summer Olympics. He assisted Pierluigi Collina in the final of that competition between Nigeria and Argentina, allowing a controversial late winning goal for Nigeria. Two years later, he was selected to be an assistant at the 1998 FIFA World Cup and officiated five games during the tournament, including the third place match between Netherlands and Croatia.",
+        "The following details notable events from the year 2005 in Northern Ireland. Northern Ireland is a part of the United Kingdom in the north-east of the island of Ireland. It is variously described as a country, province or region of the UK, amongst other terms."
+      ],
+      "retrieved_ids": [
+        122333,
+        431199,
+        108174,
+        49582,
+        97592,
+        336551,
+        16306,
+        6264,
+        176474,
+        443680
+      ],
+      "gold_ids": [
+        431199,
+        122333
+      ],
+      "latency_ms": 4013.4957539994502,
+      "stage_latency_ms": {
+        "retrieve": 40.48376700029621,
+        "rerank": 87.40622099958273,
+        "crag": 1521.2909889996808,
+        "generate": 2364.2596760000743
+      },
+      "action": "Correct",
+      "crag": {
+        "action": "Correct",
+        "strips": [
+          "David B. Allison (born 27 September 1948) is an English former football referee, who operated in the English Football League and Premier League. During his time on the List he was based in Lancaster and was by profession a teacher.",
+          "The Home Nations, or Home Countries, refers collectively to England, Scotland, Wales, and Northern Ireland (countries of the United Kingdom), and in certain sports (e.g. Rugby football) contexts, to England, Scotland, Wales and the whole island of Ireland. The term \"Home Nations\" is used in this second sense partly because Northern Ireland and the Republic of Ireland have a unified association structure in certain sports, such as the Irish Rugby Football Union.",
+          "Lencie Fred (born 21 March 1968) is the current Referee Development Officer of the Vanuatu Football Federation. Fred is a former international association football referee from Vanuatu. He was the first referee from his country to be included on the FIFA list of referees.",
+          "Fred started refereeing at a young age and was named as an assistant referee for the 1996 Summer Olympics. He assisted Pierluigi Collina in the final of that competition between Nigeria and Argentina, allowing a controversial late winning goal for Nigeria. Two years later, he was selected to be an assistant at the 1998 FIFA World Cup and officiated five games during the tournament, including the third place match between Netherlands and Croatia.",
+          "The following details notable events from the year 2005 in Northern Ireland. Northern Ireland is a part of the United Kingdom in the north-east of the island of Ireland. It is variously described as a country, province or region of the UK, amongst other terms."
+        ],
+        "strip_scores": [
+          0.614,
+          -0.687,
+          0.37,
+          0.369,
+          -0.694
+        ],
+        "doc_scores": [
+          -0.86,
+          0.614,
+          -0.804,
+          -0.876,
+          -0.723,
+          0.352,
+          -0.831,
+          -0.747,
+          -0.756,
+          -0.851
+        ]
+      },
+      "prompt_tokens": 509,
+      "completion_tokens": 57,
+      "ttft_ms": 118.52472100054001,
+      "extra": {
+        "action": "Correct",
+        "label": "Hallucinated",
+        "gold_in_index": true
+      }
+    },
+    {
+      "query_id": "5ae325d75542994393b9e635",
+      "question": "What nationality are both Monte Hellman and Stephen Sommers?",
+      "answer": "Based on the given contexts, both Monte Hellman and Stephen Sommers are American nationals.",
+      "contexts": [
+        "Monte Hellman (born July 12, 1932) is an American film director, producer, writer, and editor. Hellman began his career as an editor's apprentice at ABC TV, and made his directorial debut with the horror film \"Beast from Haunted Cave\" (1959), produced by Roger Corman.",
+        "Stephen Sommers (born March 20, 1962) is an American screenwriter and film director, best known for \"The Mummy\" (1999) and its sequel, \"The Mummy Returns\" (2001). He also directed Disney's live action version of \"Rudyard Kipling's The Jungle Book\" (1994), the action/horror film \"Van Helsing\" (2004), and \"\" (2009).",
+        "Van Helsing is a 2004 American dark fantasy action-adventure film written and directed by Stephen Sommers. It stars Hugh Jackman as vigilante monster hunter Van Helsing, and Kate Beckinsale as Anna Valerious. The film is an homage and tribute to the Universal Horror Monster films from the 1930s and '40s (also produced by Universal Studios which were in turn based on novels by Bram Stoker and Mary Shelley), of which Sommers is a fan.",
+        "The Mummy Returns is a 2001 American action-adventure fantasy film written and directed by Stephen Sommers, starring Brendan Fraser, Rachel Weisz, John Hannah, Arnold Vosloo, Oded Fehr, Patricia Velásquez, and Dwayne \"The Rock\" Johnson. The film is a sequel to the 1999 film \"The Mummy\".",
+        "Catch Me If You Can is a 1989 American motion picture starring Matt Lattanzi, Loryn Locklin, Grant Heslov, Geoffrey Lewis and M. Emmet Walsh. The film was the directorial debut of writer and director Stephen Sommers, with a soundtrack by Tangerine Dream."
+      ],
+      "retrieved_ids": [
+        49677,
+        158917,
+        275623,
+        49671,
+        275622,
+        275621,
+        49670,
+        360577,
+        116496,
+        91257
+      ],
+      "gold_ids": [
+        49677,
+        158917
+      ],
+      "latency_ms": 2423.5122860000047,
+      "stage_latency_ms": {
+        "retrieve": 27.624925000054645,
+        "rerank": 75.64119000016944,
+        "crag": 1214.3236980000438,
+        "generate": 1105.8768940001755
+      },
+      "action": "Ambiguous",
+      "crag": {
+        "action": "Ambiguous",
+        "strips": [
+          "Monte Hellman (born July 12, 1932) is an American film director, producer, writer, and editor. Hellman began his career as an editor's apprentice at ABC TV, and made his directorial debut with the horror film \"Beast from Haunted Cave\" (1959), produced by Roger Corman.",
+          "Stephen Sommers (born March 20, 1962) is an American screenwriter and film director, best known for \"The Mummy\" (1999) and its sequel, \"The Mummy Returns\" (2001). He also directed Disney's live action version of \"Rudyard Kipling's The Jungle Book\" (1994), the action/horror film \"Van Helsing\" (2004), and \"\" (2009).",
+          "Van Helsing is a 2004 American dark fantasy action-adventure film written and directed by Stephen Sommers. It stars Hugh Jackman as vigilante monster hunter Van Helsing, and Kate Beckinsale as Anna Valerious. The film is an homage and tribute to the Universal Horror Monster films from the 1930s and '40s (also produced by Universal Studios which were in turn based on novels by Bram Stoker and Mary Shelley), of which Sommers is a fan.",
+          "The Mummy Returns is a 2001 American action-adventure fantasy film written and directed by Stephen Sommers, starring Brendan Fraser, Rachel Weisz, John Hannah, Arnold Vosloo, Oded Fehr, Patricia Velásquez, and Dwayne \"The Rock\" Johnson. The film is a sequel to the 1999 film \"The Mummy\".",
+          "Catch Me If You Can is a 1989 American motion picture starring Matt Lattanzi, Loryn Locklin, Grant Heslov, Geoffrey Lewis and M. Emmet Walsh. The film was the directorial debut of writer and director Stephen Sommers, with a soundtrack by Tangerine Dream."
+        ],
+        "strip_scores": [
+          0.153,
+          0.149,
+          0.069,
+          0.247,
+          -0.407
+        ],
+        "doc_scores": [
+          0.153,
+          0.149,
+          -0.821,
+          -0.55,
+          0.069,
+          -0.667,
+          -0.516,
+          -0.494,
+          0.247,
+          -0.407
+        ]
+      },
+      "prompt_tokens": 562,
+      "completion_tokens": 19,
+      "ttft_ms": 160.00599199924181,
+      "extra": {
+        "action": "Ambiguous",
+        "label": "Correct",
+        "gold_in_index": true
+      }
+    },
+    {
+      "query_id": "5a8cb7ce554299653c1aa0f8",
+      "question": "Which 18th President of the United States was present at the Battle of Young's Point?",
+      "answer": "The context does not provide sufficient information to answer the question about which 18th President of the United States was present at the Battle of Young's Point.",
+      "contexts": [
+        "James Buchanan Jr. ( ; April 23, 1791June 1, 1868) was the 15th President of the United States (1857–61), serving immediately prior to the American Civil War. He is the only president from Pennsylvania, the only president to remain a lifelong bachelor, and the last president born in the 18th century.",
+        "Eisenhower.",
+        "Henry Reed Rathbone (July 1, 1837 – August 14, 1911) was a United States military officer and diplomat who was present at the assassination of President Abraham Lincoln. Rathbone was sitting with his fiancée, Clara Harris, next to the President and his wife, Mary Todd Lincoln, when John Wilkes Booth entered the president's box at Ford's Theatre and fatally shot Lincoln in the head. When Rathbone attempted to prevent Booth from fleeing the scene, Booth stabbed and seriously wounded him.",
+        "President Jimmy Carter's Moral Equivalent of War Speech was a speech in which United States President Jimmy Carter addressed the United States on April 18, 1977.",
+        "Ulysses (pronounced ) is a city in and the county seat of Grant County, Kansas, United States. It is named after Ulysses S Grant, the 18th President of the United States. As of the 2010 census, the city population was 6,161."
+      ],
+      "retrieved_ids": [
+        70413,
+        70412,
+        125338,
+        417719,
+        324223,
+        446566,
+        96256,
+        185579,
+        125341,
+        339477
+      ],
+      "gold_ids": [
+        70413,
+        70418
+      ],
+      "latency_ms": 3404.0311779999683,
+      "stage_latency_ms": {
+        "retrieve": 35.771145999206055,
+        "rerank": 84.19460700042691,
+        "crag": 1690.6736359997012,
+        "generate": 1593.3511510002063
+      },
+      "action": "Ambiguous",
+      "crag": {
+        "action": "Ambiguous",
+        "strips": [
+          "James Buchanan Jr. ( ; April 23, 1791June 1, 1868) was the 15th President of the United States (1857–61), serving immediately prior to the American Civil War. He is the only president from Pennsylvania, the only president to remain a lifelong bachelor, and the last president born in the 18th century.",
+          "Eisenhower.",
+          "Henry Reed Rathbone (July 1, 1837 – August 14, 1911) was a United States military officer and diplomat who was present at the assassination of President Abraham Lincoln. Rathbone was sitting with his fiancée, Clara Harris, next to the President and his wife, Mary Todd Lincoln, when John Wilkes Booth entered the president's box at Ford's Theatre and fatally shot Lincoln in the head. When Rathbone attempted to prevent Booth from fleeing the scene, Booth stabbed and seriously wounded him.",
+          "President Jimmy Carter's Moral Equivalent of War Speech was a speech in which United States President Jimmy Carter addressed the United States on April 18, 1977.",
+          "Ulysses (pronounced ) is a city in and the county seat of Grant County, Kansas, United States. It is named after Ulysses S Grant, the 18th President of the United States. As of the 2010 census, the city population was 6,161."
+        ],
+        "strip_scores": [
+          -0.023,
+          -0.054,
+          0.245,
+          0.112,
+          0.178
+        ],
+        "doc_scores": [
+          -0.877,
+          -0.192,
+          0.009,
+          0.245,
+          -0.917,
+          0.112,
+          0.178,
+          -0.943,
+          -0.825,
+          -0.424
+        ]
+      },
+      "prompt_tokens": 443,
+      "completion_tokens": 33,
+      "ttft_ms": 159.5680110003741,
+      "extra": {
+        "action": "Ambiguous",
+        "label": "NoAnswer",
+        "gold_in_index": true
+      }
+    },
+    {
+      "query_id": "5abd8e4a55429924427fd054",
+      "question": "What popular song composed by Mitch Leigh, with lyrics written by Joe Darion was included on Elvis Inspirational?",
+      "answer": "Elvis Inspirational includes the popular song \"The Impossible Dream (The Quest)\", composed by Mitch Leigh with lyrics by Joe Darion. This song was originally part of the 1965 Broadway musical \"Man of La Mancha,\" later adapted for the 1972 film version.",
+      "contexts": [
+        "\"The Impossible Dream (The Quest)\" is a popular song composed by Mitch Leigh, with lyrics written by Joe Darion. The song is the most popular song from the 1965 Broadway musical \"Man of La Mancha\" and is also featured in the 1972 film of the same name starring Peter O'Toole.",
+        "Man of La Mancha is a 1964 musical with a book by Dale Wasserman, lyrics by Joe Darion, and music by Mitch Leigh. It is adapted from Wasserman's non-musical 1959 teleplay \"I, Don Quixote\", which was in turn inspired by Miguel de Cervantes and his 17th-century masterpiece \"Don Quixote\". It tells the story of the \"mad\" knight Don Quixote as a play within a play, performed by Cervantes and his fellow prisoners as he awaits a hearing with the Spanish Inquisition.",
+        "Man of La Mancha is a 1972 film adaptation of the Broadway musical \"Man of La Mancha\" by Dale Wasserman, with music by Mitch Leigh and lyrics by Joe Darion. The musical was suggested by the classic novel \"Don Quixote\" by Miguel de Cervantes, but more directly based on Wasserman's 1959 non-musical television play, \"I, Don Quixote\", which combines a semi-fictional episode from the life of Cervantes with scenes from his novel.",
+        "I, Don Quixote is a non-musical play written for television, and broadcast on the CBS anthology series \"DuPont Show of the Month\" on the evening of November 9, 1959. Written by Dale Wasserman, the play was converted by him ca. 1964 into the libretto for the stage musical \"Man of La Mancha\", with songs by Mitch Leigh and Joe Darion.",
+        "L'Homme de la Mancha (English: The man of la Mancha ) is Jacques Brel's eleventh studio album. Released in 1968, it is the cast recording of the French adaptation of \"The Man of la Mancha\" by Mitch Leigh and Joe Darion. Brel adapted the book, translated the lyrics, directed the production, and played the role of Don Quixote."
+      ],
+      "retrieved_ids": [
+        308153,
+        428783,
+        308809,
+        428782,
+        430966,
+        286299,
+        130052,
+        273076,
+        192183,
+        227592
+      ],
+      "gold_ids": [
+        430969,
+        308153
+      ],
+      "latency_ms": 4059.307531999366,
+      "stage_latency_ms": {
+        "retrieve": 30.347662999702152,
+        "rerank": 62.3639949999415,
+        "crag": 1279.1856189996906,
+        "generate": 2687.3326570002973
+      },
+      "action": "Correct",
+      "crag": {
+        "action": "Correct",
+        "strips": [
+          "\"The Impossible Dream (The Quest)\" is a popular song composed by Mitch Leigh, with lyrics written by Joe Darion. The song is the most popular song from the 1965 Broadway musical \"Man of La Mancha\" and is also featured in the 1972 film of the same name starring Peter O'Toole.",
+          "Man of La Mancha is a 1964 musical with a book by Dale Wasserman, lyrics by Joe Darion, and music by Mitch Leigh. It is adapted from Wasserman's non-musical 1959 teleplay \"I, Don Quixote\", which was in turn inspired by Miguel de Cervantes and his 17th-century masterpiece \"Don Quixote\". It tells the story of the \"mad\" knight Don Quixote as a play within a play, performed by Cervantes and his fellow prisoners as he awaits a hearing with the Spanish Inquisition.",
+          "Man of La Mancha is a 1972 film adaptation of the Broadway musical \"Man of La Mancha\" by Dale Wasserman, with music by Mitch Leigh and lyrics by Joe Darion. The musical was suggested by the classic novel \"Don Quixote\" by Miguel de Cervantes, but more directly based on Wasserman's 1959 non-musical television play, \"I, Don Quixote\", which combines a semi-fictional episode from the life of Cervantes with scenes from his novel.",
+          "I, Don Quixote is a non-musical play written for television, and broadcast on the CBS anthology series \"DuPont Show of the Month\" on the evening of November 9, 1959. Written by Dale Wasserman, the play was converted by him ca. 1964 into the libretto for the stage musical \"Man of La Mancha\", with songs by Mitch Leigh and Joe Darion.",
+          "L'Homme de la Mancha (English: The man of la Mancha ) is Jacques Brel's eleventh studio album. Released in 1968, it is the cast recording of the French adaptation of \"The Man of la Mancha\" by Mitch Leigh and Joe Darion. Brel adapted the book, translated the lyrics, directed the production, and played the role of Don Quixote."
+        ],
+        "strip_scores": [
+          0.601,
+          -0.095,
+          -0.311,
+          -0.185,
+          -0.261
+        ],
+        "doc_scores": [
+          0.601,
+          -0.132,
+          -0.886,
+          -0.311,
+          -0.744,
+          0.009,
+          -0.347,
+          -0.702,
+          -0.957,
+          -0.897
+        ]
+      },
+      "prompt_tokens": 628,
+      "completion_tokens": 61,
+      "ttft_ms": 165.49223000038182,
+      "extra": {
+        "action": "Correct",
+        "label": "Hallucinated",
+        "gold_in_index": true
+      }
+    },
+    {
+      "query_id": "5a78cc5055429974737f789c",
+      "question": "Carrie Ann Inaba was a judge for a show that was featured on what television network?",
+      "answer": "Carrie Ann Inaba was a judge for the show \"Dancing with the Stars,\" which premiered on the ABC network in 2016.",
+      "contexts": [
+        "Carrie Ann Inaba (born January 5, 1968) is an American dancer, choreographer, television dance competition judge, actress, game show host, and singer. She is best known for her work on ABC TV's \"Dancing with the Stars\".",
+        "Season twenty-two of \"Dancing with the Stars\" premiered March 21, 2016, on the ABC network. Hosts Tom Bergeron and Erin Andrews returned, as did judges Carrie Ann Inaba and Bruno Tonioli. Len Goodman returned as head judge, after being absent for the previous season.",
+        "Dance War: Bruno vs. Carrie Ann was an American reality TV show dance competition featuring choreographers Bruno Tonioli and Carrie Ann Inaba, two of the four \"Dancing with the Stars\" judges. Drew Lachey, \"Dancing with the Stars\" Season Two Champion, hosted the show.",
+        "Season twelve of \"Dancing with the Stars\" premiered on March 21, 2011. Carrie Ann Inaba, Bruno Tonioli, and Len Goodman returned to the show as judges, while Tom Bergeron and Brooke Burke returned as hosts.",
+        "Season fourteen of \"Dancing with the Stars\" premiered on March 19, 2012. Tom Bergeron and Brooke Burke Charvet returned as hosts, while Carrie Ann Inaba, Len Goodman, and Bruno Tonioli all returned as judges. The Harold Wheeler orchestra and singers provided the music throughout the season."
+      ],
+      "retrieved_ids": [
+        143049,
+        266381,
+        472975,
+        30401,
+        260219,
+        84195,
+        472974,
+        293499,
+        7711,
+        472973
+      ],
+      "gold_ids": [
+        143049,
+        444827
+      ],
+      "latency_ms": 2725.1960690000487,
+      "stage_latency_ms": {
+        "retrieve": 27.69659700061311,
+        "rerank": 94.53201300038927,
+        "crag": 1229.8074210002596,
+        "generate": 1373.1257730005382
+      },
+      "action": "Correct",
+      "crag": {
+        "action": "Correct",
+        "strips": [
+          "Carrie Ann Inaba (born January 5, 1968) is an American dancer, choreographer, television dance competition judge, actress, game show host, and singer. She is best known for her work on ABC TV's \"Dancing with the Stars\".",
+          "Season twenty-two of \"Dancing with the Stars\" premiered March 21, 2016, on the ABC network. Hosts Tom Bergeron and Erin Andrews returned, as did judges Carrie Ann Inaba and Bruno Tonioli. Len Goodman returned as head judge, after being absent for the previous season.",
+          "Dance War: Bruno vs. Carrie Ann was an American reality TV show dance competition featuring choreographers Bruno Tonioli and Carrie Ann Inaba, two of the four \"Dancing with the Stars\" judges. Drew Lachey, \"Dancing with the Stars\" Season Two Champion, hosted the show.",
+          "Season twelve of \"Dancing with the Stars\" premiered on March 21, 2011. Carrie Ann Inaba, Bruno Tonioli, and Len Goodman returned to the show as judges, while Tom Bergeron and Brooke Burke returned as hosts.",
+          "Season fourteen of \"Dancing with the Stars\" premiered on March 19, 2012. Tom Bergeron and Brooke Burke Charvet returned as hosts, while Carrie Ann Inaba, Len Goodman, and Bruno Tonioli all returned as judges. The Harold Wheeler orchestra and singers provided the music throughout the season."
+        ],
+        "strip_scores": [
+          0.662,
+          0.919,
+          0.756,
+          0.481,
+          0.461
+        ],
+        "doc_scores": [
+          0.662,
+          0.919,
+          0.756,
+          0.481,
+          0.893,
+          0.33,
+          0.824,
+          0.461,
+          0.74,
+          0.805
+        ]
+      },
+      "prompt_tokens": 441,
+      "completion_tokens": 32,
+      "ttft_ms": 122.34705099945131,
+      "extra": {
+        "action": "Correct",
+        "label": "Hallucinated",
+        "gold_in_index": true
+      }
+    },
+    {
+      "query_id": "5a8e04d65542995085b3737c",
+      "question": "Which genus has more species, Pseudolarix or Epithelantha?",
+      "answer": "Pseudolarix has more species than Epithelantha. Pseudolarix is a monotypic genus containing only one species, while Epithelantha is part of a larger genus that includes over 420 plant species.",
+      "contexts": [
+        "Pseudolarix is a monotypic genus of conifer in the family Pinaceae. The sole species, Pseudolarix amabilis, is commonly known as the golden larch, though it is not a true larch (\"Larix\"), being more closely related to \"Keteleeria\", \"Abies\" and \"Cedrus\". It is native to eastern China, occurring in small areas in the mountains of southern Anhui, Zhejiang, Fujian, Jiangxi, Hunan, Hubei and eastern Sichuan, at altitudes of 100 - .",
+        "The genus \"Geranium\" contains more than 420 plant species, which are also known as cranesbill or hardy geranium (to distinguish them from \"Pelargonium\" species).",
+        "Astyanax is a genus of freshwater fish in the family Characidae of the order Characiformes. Some of these fish, like many of their relatives, are kept as aquarium pets and known collectively as tetras. With around 150 described species and new ones being described yearly, this genus is among the largest of the entire order; \"Hyphessobrycon\" also has more than 145 species and which one is larger at any one time depends on whether more species have been recently described in one or the other.",
+        "There are many species: as of 2016 there are more than 70 species.",
+        "It is a large genus with roughly 450 known species, mainly distributed in the Northern hemisphere. Recently, the genus \"Lactifluus\" has been separated from \"Lactarius\" based on molecular phylogenetic evidence."
+      ],
+      "retrieved_ids": [
+        270734,
+        285444,
+        270732,
+        158929,
+        179041,
+        59479,
+        206915,
+        52750,
+        52124,
+        48371
+      ],
+      "gold_ids": [
+        270734,
+        285444
+      ],
+      "latency_ms": 3933.523540999886,
+      "stage_latency_ms": {
+        "retrieve": 12.579782000102568,
+        "rerank": 79.3960769997284,
+        "crag": 1314.7390919993995,
+        "generate": 2526.774593000482
+      },
+      "action": "Ambiguous",
+      "crag": {
+        "action": "Ambiguous",
+        "strips": [
+          "Pseudolarix is a monotypic genus of conifer in the family Pinaceae. The sole species, Pseudolarix amabilis, is commonly known as the golden larch, though it is not a true larch (\"Larix\"), being more closely related to \"Keteleeria\", \"Abies\" and \"Cedrus\". It is native to eastern China, occurring in small areas in the mountains of southern Anhui, Zhejiang, Fujian, Jiangxi, Hunan, Hubei and eastern Sichuan, at altitudes of 100 - .",
+          "The genus \"Geranium\" contains more than 420 plant species, which are also known as cranesbill or hardy geranium (to distinguish them from \"Pelargonium\" species).",
+          "Astyanax is a genus of freshwater fish in the family Characidae of the order Characiformes. Some of these fish, like many of their relatives, are kept as aquarium pets and known collectively as tetras. With around 150 described species and new ones being described yearly, this genus is among the largest of the entire order; \"Hyphessobrycon\" also has more than 145 species and which one is larger at any one time depends on whether more species have been recently described in one or the other.",
+          "There are many species: as of 2016 there are more than 70 species.",
+          "It is a large genus with roughly 450 known species, mainly distributed in the Northern hemisphere. Recently, the genus \"Lactifluus\" has been separated from \"Lactarius\" based on molecular phylogenetic evidence."
+        ],
+        "strip_scores": [
+          0.174,
+          0.496,
+          0.353,
+          0.514,
+          0.249
+        ],
+        "doc_scores": [
+          -0.094,
+          0.073,
+          -0.344,
+          0.496,
+          0.194,
+          0.087,
+          0.05,
+          0.212,
+          -0.127,
+          0.099
+        ]
+      },
+      "prompt_tokens": 490,
+      "completion_tokens": 50,
+      "ttft_ms": 109.70702400027221,
+      "extra": {
+        "action": "Ambiguous",
+        "label": "Correct",
+        "gold_in_index": true
+      }
+    },
+    {
+      "query_id": "5ab69ef3554299710c8d1ef2",
+      "question": "The Imperials were the first pro team of a US national team goalkeeper that was born in what year?",
+      "answer": "Based on the given contexts, the answer is:\nThe Imperials were the first pro team of US national team goalkeeper Tim Howard, who was born in 1974.",
+      "contexts": [
+        "The North Jersey Imperials were a soccer club based in Paramus, New Jersey. They played in the United Soccer Leagues between 1994 and 2001. The Imperials were the first pro team of US national team goalkeeper Tim Howard.",
+        "Mark Justice (born c. 1970) is a former pro player. He is by many considered the best player of the game in his time.",
+        "Marcos Abad born in Spain on 12/09/1985, is a Spanish Goalkeeper Coach who works as First Team Goalkeeper Coach at English side Leeds United, after previously holding the role of First Team Goalkeeper Coach at then Premier League side Middlesbrough F.C. and former La Liga side Elche CF.",
+        "Amir Abdelhamid (Arabic: أمير عبد الحميد‎ ‎ ) (born April 24, 1979) is an Egyptian footballer. He plays the Goalkeeper position for the Egyptian club Wadi Dela FC. He started his career in El-Ahly and became his first goalkeeper after Essam El-Hadary escaped to FC Sion on 21 February 2008.",
+        "Happy Malama (born 1947) is a former Zambian goalkeeper who played for Roan United and was in goal in Zambia’s first ever World Cup qualifier against Sudan in October 1968. He is often mistaken for Innocent “Mummy” Malama, another goalkeeper who featured for the national team prior to Zambia’s independence. In 1970, Malama moved from Roan to Chibuku Warriors for what was then the record transfer fee in Zambian football."
+      ],
+      "retrieved_ids": [
+        236021,
+        236024,
+        236026,
+        236022,
+        432380,
+        61447,
+        236020,
+        305811,
+        448314,
+        441936
+      ],
+      "gold_ids": [
+        236021,
+        25219
+      ],
+      "latency_ms": 3635.992516999977,
+      "stage_latency_ms": {
+        "retrieve": 37.247420999847236,
+        "rerank": 175.43676100012817,
+        "crag": 1810.871973999383,
+        "generate": 1612.39639500036
+      },
+      "action": "Ambiguous",
+      "crag": {
+        "action": "Ambiguous",
+        "strips": [
+          "The North Jersey Imperials were a soccer club based in Paramus, New Jersey. They played in the United Soccer Leagues between 1994 and 2001. The Imperials were the first pro team of US national team goalkeeper Tim Howard.",
+          "Mark Justice (born c. 1970) is a former pro player. He is by many considered the best player of the game in his time.",
+          "Marcos Abad born in Spain on 12/09/1985, is a Spanish Goalkeeper Coach who works as First Team Goalkeeper Coach at English side Leeds United, after previously holding the role of First Team Goalkeeper Coach at then Premier League side Middlesbrough F.C. and former La Liga side Elche CF.",
+          "Amir Abdelhamid (Arabic: أمير عبد الحميد‎ ‎ ) (born April 24, 1979) is an Egyptian footballer. He plays the Goalkeeper position for the Egyptian club Wadi Dela FC. He started his career in El-Ahly and became his first goalkeeper after Essam El-Hadary escaped to FC Sion on 21 February 2008.",
+          "Happy Malama (born 1947) is a former Zambian goalkeeper who played for Roan United and was in goal in Zambia’s first ever World Cup qualifier against Sudan in October 1968. He is often mistaken for Innocent “Mummy” Malama, another goalkeeper who featured for the national team prior to Zambia’s independence. In 1970, Malama moved from Roan to Chibuku Warriors for what was then the record transfer fee in Zambian football."
+        ],
+        "strip_scores": [
+          -0.241,
+          -0.312,
+          -0.373,
+          -0.244,
+          -0.314
+        ],
+        "doc_scores": [
+          -0.196,
+          -0.044,
+          -0.373,
+          -0.848,
+          -0.513,
+          -0.504,
+          -0.748,
+          -0.897,
+          -0.649,
+          -0.314
+        ]
+      },
+      "prompt_tokens": 495,
+      "completion_tokens": 37,
+      "ttft_ms": 127.76854399999138,
+      "extra": {
+        "action": "Ambiguous",
+        "label": "Hallucinated",
+        "gold_in_index": true
+      }
+    },
+    {
+      "query_id": "5a77c72455429967ab10528e",
+      "question": "What is the name of the Canadian actor and musician born in New Glasgow, Nova Scotia and played in the band Sandbox?",
+      "answer": "Mike Smith, the Canadian actor and musician born in New Glasgow, Nova Scotia, played in the band Sandbox.",
+      "contexts": [
+        "Mike Smith (born August 27, 1972) is a Canadian actor and musician born in New Glasgow, Nova Scotia, and raised in Thorburn. He is best known for his portrayal of \"Bubbles\" and co-writer of the ongoing cult classic television program, films and stage production \"Trailer Park Boys\". He played hockey for the Pictou County Weeks of the Nova Scotia Midget AAA Hockey League when he was in high school.",
+        "Smith earned a degree in English from St. Francis Xavier University in Antigonish, Nova Scotia. For a short time in 2006, he was engaged to actress Nichole Hiltz.",
+        "This small rural Nova Scotia town has a hair salon, sports arena, a school (Thorburn Consolidated School), a few churches and a fire hall. It is home to several farms and is also the hometown of actor Mike Smith, who plays the character Bubbles on the Canadian television show Trailer Park Boys as well as Aaron Cameron of the City TV series Seed (TV series). The community is about 10 minutes from the town of New Glasgow, Nova Scotia.",
+        "“The Unknown Comic” is the stage name adopted by Canadian actor and stand-up comic Murray Langston (born June 27, 1945, Dartmouth, Nova Scotia, Canada), best known for his comic performances on \"The Gong Show,\" in which he usually appeared with a paper bag over his head. As of 2015, Langston was making his residence in Bathurst, New Brunswick, Canada.",
+        "Charlie Rhindress (born May 9, 1966) is an actor, playwright and director living in Halifax, Nova Scotia. Born in Amherst, Nova Scotia and educated at Mount Allison University, he is a co-founder and former Artistic Director of Live Bait Theatre, based in Sackville, New Brunswick. To date, Rhindress has written 13 full-length plays, including \"The Maritime Way of Life\", which was nominated for a Canadian Comedy award as best new play, and \"Flying On Her Own\", based on the life of the late Canadian singer/songwriter, Rita MacNeil."
+      ],
+      "retrieved_ids": [
+        53315,
+        53309,
+        415045,
+        259563,
+        259562,
+        470360,
+        346282,
+        217777,
+        217775,
+        71676
+      ],
+      "gold_ids": [
+        53315,
+        217772
+      ],
+      "latency_ms": 2221.2699219999195,
+      "stage_latency_ms": {
+        "retrieve": 32.68534000017098,
+        "rerank": 59.62049099980504,
+        "crag": 1078.110671000104,
+        "generate": 1050.8167250000042
+      },
+      "action": "Correct",
+      "crag": {
+        "action": "Correct",
+        "strips": [
+          "Mike Smith (born August 27, 1972) is a Canadian actor and musician born in New Glasgow, Nova Scotia, and raised in Thorburn. He is best known for his portrayal of \"Bubbles\" and co-writer of the ongoing cult classic television program, films and stage production \"Trailer Park Boys\". He played hockey for the Pictou County Weeks of the Nova Scotia Midget AAA Hockey League when he was in high school.",
+          "Smith earned a degree in English from St. Francis Xavier University in Antigonish, Nova Scotia. For a short time in 2006, he was engaged to actress Nichole Hiltz.",
+          "This small rural Nova Scotia town has a hair salon, sports arena, a school (Thorburn Consolidated School), a few churches and a fire hall. It is home to several farms and is also the hometown of actor Mike Smith, who plays the character Bubbles on the Canadian television show Trailer Park Boys as well as Aaron Cameron of the City TV series Seed (TV series). The community is about 10 minutes from the town of New Glasgow, Nova Scotia.",
+          "“The Unknown Comic” is the stage name adopted by Canadian actor and stand-up comic Murray Langston (born June 27, 1945, Dartmouth, Nova Scotia, Canada), best known for his comic performances on \"The Gong Show,\" in which he usually appeared with a paper bag over his head. As of 2015, Langston was making his residence in Bathurst, New Brunswick, Canada.",
+          "Charlie Rhindress (born May 9, 1966) is an actor, playwright and director living in Halifax, Nova Scotia. Born in Amherst, Nova Scotia and educated at Mount Allison University, he is a co-founder and former Artistic Director of Live Bait Theatre, based in Sackville, New Brunswick. To date, Rhindress has written 13 full-length plays, including \"The Maritime Way of Life\", which was nominated for a Canadian Comedy award as best new play, and \"Flying On Her Own\", based on the life of the late Canadian singer/songwriter, Rita MacNeil."
+        ],
+        "strip_scores": [
+          0.596,
+          -0.011,
+          0.41,
+          0.238,
+          0.044
+        ],
+        "doc_scores": [
+          0.601,
+          0.41,
+          0.238,
+          -0.735,
+          -0.693,
+          0.044,
+          -0.864,
+          -0.401,
+          -0.902,
+          -0.811
+        ]
+      },
+      "prompt_tokens": 596,
+      "completion_tokens": 23,
+      "ttft_ms": 160.73860699998477,
+      "extra": {
+        "action": "Correct",
+        "label": "Correct",
+        "gold_in_index": true
+      }
+    },
+    {
+      "query_id": "5ab528175542996a3a96a040",
+      "question": "What Australian municipality covers the inner eastern suburbs of Adelaide and has a population of 34,000?",
+      "answer": "Norwood is the Australian municipality that covers the inner eastern suburbs of Adelaide and has a population of 34,000.",
+      "contexts": [
+        "Norwood is a suburb of Adelaide, about 4 km east of the Adelaide city centre. The suburb is in the City of Norwood Payneham & St Peters, the oldest South Australian local government municipality, with a city population over 34,000.",
+        "The City of Tea Tree Gully is a local council in the Australian state of South Australia, in the outer north-eastern suburbs of Adelaide. The city has an estimated population of 98,861 people and is one of the most populous local government divisions in Adelaide. The major business district in the city is at Modbury, where Tea Tree Plaza, the Civic Centre and the library are located.",
+        "The City of Norwood Payneham & St Peters is a metropolitan local government area of South Australia. It covers the inner eastern suburbs of Adelaide. It is divided into five wards: Torrens, Payneham, West Norwood/Kent Town, Kensington (each electing two councillors), and Maylands/Trinity (three councillors).",
+        "Ashford is an electorate for the South Australian Legislative Assembly which includes many of Adelaide's inner south western suburbs. The district forms part of three federal electorates: the Division of Hindmarsh, the Division of Boothby, and the Division of Adelaide. The electorate includes the suburbs of Ashford, Black Forest, Camden Park, Clarence Gardens, Clarence Park, Cumberland Park, Everard Park, Forestville, Glandore, Keswick, Kings Park, Novar Gardens and Plympton as well as parts of Edwardstown, Goodwood, Millswood, Plympton Park, South Plympton and Wayville.",
+        "Ashford is an electorate for the South Australian Legislative Assembly which includes many of Adelaide's inner south western suburbs. The district forms part of three federal electorates: the Division of Hindmarsh, the Division of Boothby, and the Division of Adelaide. The electorate includes the suburbs of Ashford, Black Forest, Camden Park, Clarence Gardens, Clarence Park, Cumberland Park, Everard Park, Forestville, Glandore, Keswick, Kings Park, Novar Gardens and Plympton as well as parts of Edwardstown, Goodwood, Millswood, Plympton Park, South Plympton and Wayville."
+      ],
+      "retrieved_ids": [
+        54979,
+        317827,
+        155279,
+        79154,
+        54972,
+        123457,
+        136469,
+        286822,
+        359389,
+        101702
+      ],
+      "gold_ids": [
+        54972,
+        54979
+      ],
+      "latency_ms": 2507.047594999676,
+      "stage_latency_ms": {
+        "retrieve": 27.63400499952695,
+        "rerank": 69.41170400023111,
+        "crag": 1218.1120579998606,
+        "generate": 1191.85202799963
+      },
+      "action": "Ambiguous",
+      "crag": {
+        "action": "Ambiguous",
+        "strips": [
+          "Norwood is a suburb of Adelaide, about 4 km east of the Adelaide city centre. The suburb is in the City of Norwood Payneham & St Peters, the oldest South Australian local government municipality, with a city population over 34,000.",
+          "The City of Tea Tree Gully is a local council in the Australian state of South Australia, in the outer north-eastern suburbs of Adelaide. The city has an estimated population of 98,861 people and is one of the most populous local government divisions in Adelaide. The major business district in the city is at Modbury, where Tea Tree Plaza, the Civic Centre and the library are located.",
+          "The City of Norwood Payneham & St Peters is a metropolitan local government area of South Australia. It covers the inner eastern suburbs of Adelaide. It is divided into five wards: Torrens, Payneham, West Norwood/Kent Town, Kensington (each electing two councillors), and Maylands/Trinity (three councillors).",
+          "Ashford is an electorate for the South Australian Legislative Assembly which includes many of Adelaide's inner south western suburbs. The district forms part of three federal electorates: the Division of Hindmarsh, the Division of Boothby, and the Division of Adelaide. The electorate includes the suburbs of Ashford, Black Forest, Camden Park, Clarence Gardens, Clarence Park, Cumberland Park, Everard Park, Forestville, Glandore, Keswick, Kings Park, Novar Gardens and Plympton as well as parts of Edwardstown, Goodwood, Millswood, Plympton Park, South Plympton and Wayville.",
+          "Ashford is an electorate for the South Australian Legislative Assembly which includes many of Adelaide's inner south western suburbs. The district forms part of three federal electorates: the Division of Hindmarsh, the Division of Boothby, and the Division of Adelaide. The electorate includes the suburbs of Ashford, Black Forest, Camden Park, Clarence Gardens, Clarence Park, Cumberland Park, Everard Park, Forestville, Glandore, Keswick, Kings Park, Novar Gardens and Plympton as well as parts of Edwardstown, Goodwood, Millswood, Plympton Park, South Plympton and Wayville."
+        ],
+        "strip_scores": [
+          0.383,
+          -0.787,
+          0.299,
+          -0.817,
+          -0.817
+        ],
+        "doc_scores": [
+          0.383,
+          -0.916,
+          -0.916,
+          -0.787,
+          0.271,
+          -0.896,
+          -0.87,
+          -0.841,
+          -0.841,
+          -0.821
+        ]
+      },
+      "prompt_tokens": 602,
+      "completion_tokens": 28,
+      "ttft_ms": 158.5193969995089,
+      "extra": {
+        "action": "Ambiguous",
+        "label": "Hallucinated",
+        "gold_in_index": true
+      }
+    },
+    {
+      "query_id": "5adc8c7a5542994d58a2f64f",
+      "question": "Which castle serving as the seat of clan chief John MacLeod of Macleod was was remodelled in a mock-medieval style?",
+      "answer": "Based on the given contexts, the castle that served as the seat of clan chief John MacLeod of Macleod and was remodelled in a mock-medieval style was Dunvegan Castle.",
+      "contexts": [
+        "Dunvegan Castle is located 1 mi to the north of Dunvegan on the Isle of Skye, off the west coast of Scotland. It is the seat of the MacLeod of MacLeod, chief of the Clan MacLeod. Probably a fortified site from the earliest times, the castle was first built in the 13th century and developed piecemeal over the centuries.",
+        "In the 19th century the whole was remodelled in a mock-medieval style. The castle is built on an elevated rock overlooking an inlet on the eastern shore of Loch Dunvegan, a sea loch.",
+        "Sir Roderick Macleod of Macleod (1573–1626), also known as Rory Mor, was the 15th chief of Clan MacLeod. His seat as Clan Chief was Dunvegan Castle.",
+        "John MacLeod of MacLeod, born as John Wolrige-Gordon, (10 August 1935 – 12 February 2007) was the 29th chief of Clan MacLeod. Faced with the need for expensive repairs to the clan's seat at Dunvegan Castle on the Isle of Skye, his proposed methods to raise funds caused considerable controversy. His twin brother, Patrick Wolridge-Gordon (1935–2002), was MP for East Aberdeenshire.",
+        "The Dunvegan Cup is a wooden ceremonial cup, decorated with silver plates, which dates to 1493. It was created at the request of Caitríona, wife of John Maguire, lord of Fermanagh. The cup is an heirloom of the Macleods of Dunvegan, and is held at their seat of Dunvegan Castle."
+      ],
+      "retrieved_ids": [
+        143662,
+        163067,
+        163069,
+        143656,
+        143654,
+        163068,
+        163066,
+        163064,
+        388108,
+        163071
+      ],
+      "gold_ids": [
+        143662,
+        163069
+      ],
+      "latency_ms": 3174.322009000207,
+      "stage_latency_ms": {
+        "retrieve": 28.255891000299016,
+        "rerank": 77.48444400021981,
+        "crag": 1287.073383000461,
+        "generate": 1781.4718620002168
+      },
+      "action": "Correct",
+      "crag": {
+        "action": "Correct",
+        "strips": [
+          "Dunvegan Castle is located 1 mi to the north of Dunvegan on the Isle of Skye, off the west coast of Scotland. It is the seat of the MacLeod of MacLeod, chief of the Clan MacLeod. Probably a fortified site from the earliest times, the castle was first built in the 13th century and developed piecemeal over the centuries.",
+          "In the 19th century the whole was remodelled in a mock-medieval style. The castle is built on an elevated rock overlooking an inlet on the eastern shore of Loch Dunvegan, a sea loch.",
+          "Sir Roderick Macleod of Macleod (1573–1626), also known as Rory Mor, was the 15th chief of Clan MacLeod. His seat as Clan Chief was Dunvegan Castle.",
+          "John MacLeod of MacLeod, born as John Wolrige-Gordon, (10 August 1935 – 12 February 2007) was the 29th chief of Clan MacLeod. Faced with the need for expensive repairs to the clan's seat at Dunvegan Castle on the Isle of Skye, his proposed methods to raise funds caused considerable controversy. His twin brother, Patrick Wolridge-Gordon (1935–2002), was MP for East Aberdeenshire.",
+          "The Dunvegan Cup is a wooden ceremonial cup, decorated with silver plates, which dates to 1493. It was created at the request of Caitríona, wife of John Maguire, lord of Fermanagh. The cup is an heirloom of the Macleods of Dunvegan, and is held at their seat of Dunvegan Castle."
+        ],
+        "strip_scores": [
+          -0.376,
+          -0.109,
+          -0.023,
+          -0.013,
+          -0.696
+        ],
+        "doc_scores": [
+          0.701,
+          -0.023,
+          -0.013,
+          -0.745,
+          -0.781,
+          -0.87,
+          -0.915,
+          -0.87,
+          -0.86,
+          -0.861
+        ]
+      },
+      "prompt_tokens": 513,
+      "completion_tokens": 40,
+      "ttft_ms": 118.24204099957569,
+      "extra": {
+        "action": "Correct",
+        "label": "Correct",
+        "gold_in_index": true
+      }
+    },
+    {
+      "query_id": "5a7cb4e55542996dd594b9a3",
+      "question": "What was the 2002 album by the Canadian artist born on June 1, 1974?",
+      "answer": "Based on the given contexts, the 2002 album by the Canadian artist born on June 1, 1974, is \"Supposed Former Infatuation Junkie\" by Sam Roberts. This album was released in 1998, but it's mentioned that his debut EP \"The Inhuman Condition\" from 2002 also reached the Canadian charts.",
+      "contexts": [
+        "Her following album, \"Supposed Former Infatuation Junkie\", was released in 1998.",
+        "Sam Roberts (born October 2, 1974) is a Canadian rock singer-songwriter, who has released six albums and has been signed to Universal (Canada) since 2002. His debut EP \"The Inhuman Condition\", reached the Canadian charts in 2002. Live he performs with the Sam Roberts Band.",
+        "Alex Lloyd (born 19 September 1974) is an Australian singer-songwriter. His most popular album \"Watching Angels Mend,\" which includes the songs \"Amazing\" and \"Green\", was released in 2001 went double platinum. His third album \"Distant Light\" released in 2003 featured three songs that made the Australian top 40 singles charts.",
+        "After Nickelback signed with Roadrunner Records in 1999, \"Curb\" was released internationally on June 25, 2002.",
+        "\"Never Again\" is a song by Canadian rock band Nickelback. It was released in July 2002 as the third single of their third album \"Silver Side Up\". It became a No."
+      ],
+      "retrieved_ids": [
+        58812,
+        44777,
+        166560,
+        131683,
+        286637,
+        95347,
+        389197,
+        192971,
+        122675,
+        95341
+      ],
+      "gold_ids": [
+        58812,
+        69515
+      ],
+      "latency_ms": 5991.039789000752,
+      "stage_latency_ms": {
+        "retrieve": 26.07071399961569,
+        "rerank": 57.770370000071125,
+        "crag": 1688.652175000243,
+        "generate": 4218.507074000627
+      },
+      "action": "Ambiguous",
+      "crag": {
+        "action": "Ambiguous",
+        "strips": [
+          "Her following album, \"Supposed Former Infatuation Junkie\", was released in 1998.",
+          "Sam Roberts (born October 2, 1974) is a Canadian rock singer-songwriter, who has released six albums and has been signed to Universal (Canada) since 2002. His debut EP \"The Inhuman Condition\", reached the Canadian charts in 2002. Live he performs with the Sam Roberts Band.",
+          "Alex Lloyd (born 19 September 1974) is an Australian singer-songwriter. His most popular album \"Watching Angels Mend,\" which includes the songs \"Amazing\" and \"Green\", was released in 2001 went double platinum. His third album \"Distant Light\" released in 2003 featured three songs that made the Australian top 40 singles charts.",
+          "After Nickelback signed with Roadrunner Records in 1999, \"Curb\" was released internationally on June 25, 2002.",
+          "\"Never Again\" is a song by Canadian rock band Nickelback. It was released in July 2002 as the third single of their third album \"Silver Side Up\". It became a No."
+        ],
+        "strip_scores": [
+          -0.903,
+          -0.524,
+          -0.919,
+          -0.357,
+          0.543
+        ],
+        "doc_scores": [
+          -0.815,
+          -0.524,
+          -0.972,
+          -0.976,
+          -0.807,
+          0.173,
+          -0.969,
+          -0.976,
+          -0.948,
+          0.373
+        ]
+      },
+      "prompt_tokens": 400,
+      "completion_tokens": 82,
+      "ttft_ms": 121.77407299986953,
+      "extra": {
+        "action": "Ambiguous",
+        "label": "Hallucinated",
+        "gold_in_index": true
+      }
+    },
+    {
+      "query_id": "5ab6d1a955429954757d3381",
+      "question": "Renne Montagne and Steve Inskeep successed which Peabody Award-winning member of the National Radio Hall of Fame on NPR's Morning Edition?",
+      "answer": "Renne Montagne and Steve Inskeep succeeded Bob Edwards as hosts of NPR's Morning Edition, following his departure in November 2016.",
+      "contexts": [
+        "Renée Montagne (pronounced Mon-TAIN) is an American radio journalist and was the co-host (with Steve Inskeep and David Greene) of National Public Radio's weekday morning news program, \"Morning Edition\", from May 2004 to November 11, 2016. Montagne and Inskeep succeeded longtime host Bob Edwards, initially as interim replacements, and Greene joined the team in 2012. Montagne had served as a correspondent and occasional host since 1989.",
+        "Robert Alan \"Bob\" Edwards (born May 16, 1947) is an American broadcast journalist, a Peabody Award-winning member of the National Radio Hall of Fame. He gained reputation as the first host of National Public Radio's flagship program, \"Morning Edition\". Starting in 2004, Edwards then was the host of \"The Bob Edwards Show\" on Sirius XM Radio and \"Bob Edwards Weekend\" distributed by Public Radio International to more than 150 public radio stations.",
+        "She was executive editor at the nonprofit Center for Public Integrity and since 2013 has been the Washington DC Bureau Chief and Vice-President for the E.W. Scripps Company. In 2015, she won her fourth Peabody award for a story about soldiers discharged from the military for sexual crimes who evade registering as sex offenders after leaving the military.",
+        "She is one of NPR's most decorated journalists, with three Peabody Awards two Alfred I. duPont-Columbia University Awards, and more than a dozen other prestigious national awards.",
+        "Daisy Marie Rosario is an American public radio personality and former senior producer of NPR's \"Latino USA\" and producer of WNYC's \"Sooo Many White Guys\", hosted by Phoebe Robinson. She is also the host of Mic's series \"Future Perfect\". Her story \"Child of Trouble\" appeared on the Peabody Award-winning 2010 season of The Moth Radio Hour and was used to present the award."
+      ],
+      "retrieved_ids": [
+        5803,
+        17867,
+        5800,
+        6240,
+        17870,
+        214186,
+        17871,
+        77376,
+        259077,
+        214184
+      ],
+      "gold_ids": [
+        5800,
+        5803
+      ],
+      "latency_ms": 2939.737308000076,
+      "stage_latency_ms": {
+        "retrieve": 25.868977000754967,
+        "rerank": 112.15246500069043,
+        "crag": 1379.3790999998237,
+        "generate": 1422.3001869995642
+      },
+      "action": "Ambiguous",
+      "crag": {
+        "action": "Ambiguous",
+        "strips": [
+          "Renée Montagne (pronounced Mon-TAIN) is an American radio journalist and was the co-host (with Steve Inskeep and David Greene) of National Public Radio's weekday morning news program, \"Morning Edition\", from May 2004 to November 11, 2016. Montagne and Inskeep succeeded longtime host Bob Edwards, initially as interim replacements, and Greene joined the team in 2012. Montagne had served as a correspondent and occasional host since 1989.",
+          "Robert Alan \"Bob\" Edwards (born May 16, 1947) is an American broadcast journalist, a Peabody Award-winning member of the National Radio Hall of Fame. He gained reputation as the first host of National Public Radio's flagship program, \"Morning Edition\". Starting in 2004, Edwards then was the host of \"The Bob Edwards Show\" on Sirius XM Radio and \"Bob Edwards Weekend\" distributed by Public Radio International to more than 150 public radio stations.",
+          "She was executive editor at the nonprofit Center for Public Integrity and since 2013 has been the Washington DC Bureau Chief and Vice-President for the E.W. Scripps Company. In 2015, she won her fourth Peabody award for a story about soldiers discharged from the military for sexual crimes who evade registering as sex offenders after leaving the military.",
+          "She is one of NPR's most decorated journalists, with three Peabody Awards two Alfred I. duPont-Columbia University Awards, and more than a dozen other prestigious national awards.",
+          "Daisy Marie Rosario is an American public radio personality and former senior producer of NPR's \"Latino USA\" and producer of WNYC's \"Sooo Many White Guys\", hosted by Phoebe Robinson. She is also the host of Mic's series \"Future Perfect\". Her story \"Child of Trouble\" appeared on the Peabody Award-winning 2010 season of The Moth Radio Hour and was used to present the award."
+        ],
+        "strip_scores": [
+          0.081,
+          -0.365,
+          -0.261,
+          -0.359,
+          -0.26
+        ],
+        "doc_scores": [
+          0.105,
+          -0.49,
+          -0.411,
+          -0.44,
+          -0.432,
+          -0.625,
+          -0.703,
+          -0.393,
+          -0.255,
+          -0.428
+        ]
+      },
+      "prompt_tokens": 568,
+      "completion_tokens": 31,
+      "ttft_ms": 144.5055370004411,
+      "extra": {
+        "action": "Ambiguous",
+        "label": "Correct",
+        "gold_in_index": true
+      }
+    }
+  ],
+  "gates": {
+    "all answers non-empty": true,
+    "queries.jsonl complete": true,
+    "observed latency dominates stages": true,
+    "P95 latency present": true,
+    "per-stage P95 present": true,
+    "crag is its own stage (crag only)": true,
+    "TTFT measured on every query": true,
+    "retrieval depth recorded": true,
+    "cost is not zero": true,
+    "adjusted accuracy reported": true,
+    "ragas faithfulness scored": true,
+    "ragas answer relevancy scored": true,
+    "ragas context relevancy scored": true,
+    "CRAG has a non-Correct trigger": true,
+    "judge != generator": true,
+    "contract: no fabricated measurement": true,
+    "contract: no fabricated verdict": true,
+    "contract: retrieval scores carry metadata": true,
+    "contract: source has no rule-2 violation": true
+  },
+  "gates_green": "19/19"
+}
