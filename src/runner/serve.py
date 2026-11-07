@@ -152,7 +152,9 @@ def server_from_config(cfg: dict, role: str = "generator") -> VLLMServer:
         # The judge needs no --quantization override of its own; it inherits the generator's
         # until experiment.yaml declares otherwise.
         quantization=ep.get(f"{role}_quantization", gen.get("quantization")),
-        extra_args=list(ep.get("extra_args", [])),
+        # Per-role args: <role>_extra_args falls back to the shared extra_args, so the judge can
+        # carry --chat-template without forcing it on the generator (whose own template is fine).
+        extra_args=list(ep.get(f"{role}_extra_args", ep.get("extra_args", []))),
     )
 
 

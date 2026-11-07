@@ -67,6 +67,13 @@ serve:
   gpu_memory_utilization: 0.5
   max_model_len: 4096
   extra_args: []           # e.g. [--max-num-seqs, 1] to force single-sequence latency
+  # The solidrust judge AWQ mirror ships the OLD Mistral chat template, which has NO system-role
+  # handling and raises "Conversation roles must alternate user/assistant/..." on any leading
+  # system message — and the ragas->instructor judge path always sends one (the JSON/MD_JSON
+  # handlers insert the schema as a system message). The vendored OFFICIAL v0.3 template folds an
+  # optional leading system message into [INST]; render-tested in isolation. Judge role only —
+  # the generator's Qwen template is untouched.
+  judge_extra_args: ["--chat-template", "configs/mistral_instruct_v03_chat_template.jinja"]
 
 judge:
   # The judge is its own AWQ Mistral on its own port. Source of record is the
@@ -76,7 +83,9 @@ judge:
   # for bf16). Mistral is absent from the 2×Qwen + 1×Llama generator matrix.
   model_id: mistralai/Mistral-7B-Instruct-v0.3
   serve_id: solidrust/Mistral-7B-Instruct-v0.3-AWQ
-  mode: JSON               # vLLM guided-JSON honors response_format; MD_JSON is the fallback
+  mode: MD_JSON            # plain-text JSON: no response_format dependency on the vLLM endpoint.
+                           # JSON (guided json_object) remains available — flip back only if the
+                           # judge's JSON discipline degrades; the probe gates that (probe_min_pass).
   probe_min_pass: 4
 
 # The 2 pipelines are NOT listed here: they are Pipeline dataclasses in src/pipeline.py and
