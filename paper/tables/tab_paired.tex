@@ -7,6 +7,7 @@
 \centering
 \caption{Paired crag vs.\ baseline tests within each model (placeholder).}
 \label{tab:paired}
+\resizebox{\textwidth}{!}{%
 \begin{tabular}{llllll}
 \toprule
 \textbf{Model} & \textbf{Metric} & \textbf{Test} & \textbf{p} & \textbf{q\_FDR} & \textbf{Interpretation} \\
@@ -18,7 +19,7 @@ Qwen3-4B & Latency & Wilcoxon & -- & -- & -- \\
 LLaMA-3.1-8B & Correctness & McNemar exact & -- & -- & -- \\
 LLaMA-3.1-8B & Latency & Wilcoxon & -- & -- & -- \\
 \bottomrule
-\end{tabular}
+\end{tabular}}
 
 \caption*{BH-FDR adjusted across all six comparisons; query-level
 pairing shares the same $n=300$ queries per model.}

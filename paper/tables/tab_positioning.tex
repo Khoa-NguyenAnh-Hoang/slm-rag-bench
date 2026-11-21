@@ -7,6 +7,7 @@
 \centering
 \caption{Positioning of this benchmark relative to prior work.}
 \label{tab:positioning}
+\resizebox{\textwidth}{!}{%
 \begin{tabular}{llllp{2.6cm}}
 \toprule
 \textbf{Work} & \textbf{Models} & \textbf{Retrieval axis} & \textbf{Core metrics} & \textbf{Missing} \\
@@ -20,7 +21,9 @@ RGB~\cite{chen2023rgb} & LLMs (EN/ZH) & Fixed per setup & Accuracy, rejection ra
 CRAG~\cite{yan2024crag} & Off-the-shelf LLMs & Fixed per setup & Accuracy gains & Latency, cost \\
 Mala et al.~\cite{mala2026faithfulness} & 2--8B open models & Varied (sparse/dense/hybrid) & Accuracy, hallucination, rejection & Latency, cost \\
 EvaRAG~\cite{elkiran2026empirical} & Hosted models & Varied (ANOVA over 162 configs) & Correctness, cost, latency & Faithfulness on SLMs \\
-This work & Qwen2.5-1.5B / Qwen3-4B / LLaMA-3.1-8B & \textbf{Fixed (bm25s $\to$ MiniLM)} & \textbf{Faithfulness + latency + cost + abstention} & --- \\
+This work & Qwen2.5-1.5B & \textbf{Fixed (bm25s $\to$ MiniLM)} & \textbf{Faithfulness + latency + cost + abstention} & --- \\
+This work & Qwen3-4B & \textbf{Fixed (bm25s $\to$ MiniLM)} & \textbf{Faithfulness + latency + cost + abstention} & --- \\
+This work & LLaMA-3.1-8B & \textbf{Fixed (bm25s $\to$ MiniLM)} & \textbf{Faithfulness + latency + cost + abstention} & --- \\
 \bottomrule
-\end{tabular}
+\end{tabular}}
 \end{table}
