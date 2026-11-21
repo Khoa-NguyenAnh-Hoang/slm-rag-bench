@@ -44,12 +44,11 @@ therefore a derivative corrective design, not a full CRAG reproduction.
 EvaRAG builds a large controlled configuration space over indexing,
 similarity, retrieval, and reranking, and logs semantic quality together
 with mean and P95 latency, token usage, and monetary cost per
-query~\cite{elkiran2026empirical}. Rasheed et al.\ apply factorial ANOVA
-and effect-size analysis to the same family of RAG components and show
-that retriever and similarity choices dominate quality variance while
-index choice mainly trades latency~\cite{rasheed2025empirical}. These
-works establish the scorecard this paper adopts, but they study large
-hosted models and treat retrieval as an experimental axis. Fixing
+query; its factorial ANOVA and effect-size analysis show that
+retriever and similarity choices dominate quality variance while
+index choice mainly trades latency~\cite{elkiran2026empirical}. This
+work establishes the scorecard this paper adopts, but it studies large
+hosted models and treats retrieval as an experimental axis. Fixing
 retrieval and moving to small open models changes the question from
 ``which pipeline component matters?'' to ``which deployable model should
 I pick?''.

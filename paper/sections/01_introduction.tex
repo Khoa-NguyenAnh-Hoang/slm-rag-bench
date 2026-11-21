@@ -36,9 +36,9 @@ robustness and time-sensitive corpora~\cite{zeng2025rare}. RGB stresses
 noise robustness and negative rejection~\cite{chen2023rgb}. Mala et al.\
 give a systematic study of faithfulness hallucinations across 2--8B
 models and several retrievers, and introduce adjusted accuracy and
-rejection rate~\cite{mala2026faithfulness}. EvaRAG and Rasheed et al.\
-add cost and latency to the RAG scorecard and use statistical tests to
-rank pipeline components~\cite{elkiran2026empirical,rasheed2025empirical}.
+rejection rate~\cite{mala2026faithfulness}. EvaRAG
+adds cost and latency to the RAG scorecard and uses statistical tests to
+rank pipeline components~\cite{elkiran2026empirical}.
 Many evaluations still underreport efficiency and cost relative to answer
 quality~\cite{wu2024survey,saadfalcon2023ares}. What this paper does is
 combine these elements in one controlled benchmark design: (i) retrieval
@@ -47,7 +47,7 @@ stage, (ii) faithfulness, abstention, latency, and cost are all reported
 for the same queries, and (iii) every number is traceable to a committed
 per-query record. When retrieval is allowed to vary between model runs,
 a quality difference can be a retrieval difference in disguise, which is
-exactly the confound that makes quality-only rankings misleading~\cite{rasheed2025empirical}.
+exactly the confound that makes quality-only rankings misleading~\cite{elkiran2026empirical}.
 
 % --- Contributions ---
 This paper makes four contributions:

@@ -42,23 +42,26 @@ when fluency gains are modest~\cite{michaels2026dsgt}.}
 \subsection{Pareto fronts}
 
 Figures~\ref{fig:pareto_latency} and \ref{fig:pareto_cost} plot
-faithfulness against P95 latency and against total cost respectively.
+faithfulness against P95 latency and against GPU-amortised cost
+respectively.
 Cells on the front are candidates for ``best deployable model'' under
 different budget constraints.
 
 \begin{figure}[h]
 \centering
-\TODO{Figure: faithfulness vs.\ P95 latency (6 cells, labelled).}
-\includegraphics[width=0.75\textwidth]{pareto_latency}
+\IfFileExists{figures/pareto_latency.png}{%
+\includegraphics[width=0.75\textwidth]{pareto_latency}%
+}{\TODO{Figure: faithfulness vs.\ P95 latency (6 cells, labelled).}}
 \caption{Faithfulness vs.\ end-to-end P95 latency.}
 \label{fig:pareto_latency}
 \end{figure}
 
 \begin{figure}[h]
 \centering
-\TODO{Figure: faithfulness vs.\ total cost per query (6 cells, labelled).}
-\includegraphics[width=0.75\textwidth]{pareto_cost}
-\caption{Faithfulness vs.\ cost per query.}
+\IfFileExists{figures/pareto_cost.png}{%
+\includegraphics[width=0.75\textwidth]{pareto_cost}%
+}{\TODO{Figure: faithfulness vs.\ GPU-amortised cost per query (6 cells, labelled).}}
+\caption{Faithfulness vs.\ GPU-amortised cost per query.}
 \label{fig:pareto_cost}
 \end{figure}
 
