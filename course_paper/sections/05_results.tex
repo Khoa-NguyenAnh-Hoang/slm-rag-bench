@@ -6,10 +6,10 @@
 \section{Results \& Discussion}
 \label{sec:results}
 
-The \texttt{crag} rows below are filled from the committed $n=30$ T4 runs
-(\texttt{results/crag-*/scorecard.json} on \texttt{main}); the \texttt{baseline}
-rows and the paired tests in Table~\ref{tab:paired} await the three baseline
-cells, and the human-agreement table awaits the 50 hand labels.
+All six cells of the $3 \times 2$ grid ran end-to-end on free Colab T4s at
+$n=30$ (19/19 gates each) and are committed under \texttt{results/*/} on
+\texttt{main}; every number below traces to a committed scorecard. Only the
+human-agreement table (Table~\ref{tab:human}) awaits its 50 hand labels.
 
 \subsection{Scorecard}
 
@@ -21,10 +21,15 @@ dominates all quality and efficiency axes~\cite{sharma2025survey,brown2025system
 
 \input{tables/tab_scorecard}
 
-\TODO{Reading guide once numbers exist: highlight which cell minimises
-cost per faithfulness point, which minimises P95 latency, and whether
-crag beats baseline within each model. Do not lead with a single ``best''
-cell.}
+No cell dominates outright. \texttt{baseline--qwen2.5-1.5b} is simultaneously
+the fastest (P95 4329\,ms) and the most faithful (0.577) cell, so it is the
+sole point on the latency front; on the GPU-cost front it is joined by
+\texttt{crag--qwen2.5-1.5b} (cheapest per query, 0.0516\,\$) and
+\texttt{crag--qwen3-4b} (highest faithfulness on the front, 0.509).
+\texttt{crag--qwen3-4b} posts the best adjusted accuracy (81.2\%). The
+8B cells sit off both fronts: \texttt{baseline--llama3.1-8b} costs more than
+the 1.5B cells for less faithfulness, and \texttt{crag--llama3.1-8b} is the
+least faithful cell overall (0.381) despite rejecting 60\% of queries.
 
 \subsection{Paired crag vs.\ baseline tests}
 
@@ -35,11 +40,22 @@ false-discovery-rate adjustment across all comparisons.
 
 \input{tables/tab_paired}
 
-\TODO{Interpretation template: significance means the corrective stage
-reliably shifts a given axis; non-significance means the added evaluator
-latency is not justified by the measured gain. Interpret gains
-cautiously: corrective pipelines can improve citation faithfulness even
-when fluency gains are modest~\cite{michaels2026dsgt}.}
+One of the six comparisons survives Benjamini--Hochberg correction: the
+corrective stage significantly increases end-to-end latency on
+\texttt{qwen2.5-1.5b} ($p=4.42{\times}10^{-6}$, $q=2.65{\times}10^{-5}$),
+the evaluator's serial scoring made visible by the fixed retriever. No
+correctness shift is significant on any model (McNemar $q \geq 0.656$), so
+at this scale the added evaluator latency is not justified by a measured
+correctness gain; the descriptively largest shift, $+4.0$pp AdjAcc on
+\texttt{qwen3-4b}, is within the $\pm 9.1$pp standard error. RAGAS
+faithfulness is likewise not improved by the corrective stage on any model
+at $n=30$ (baseline 0.577/0.575/0.389 vs crag 0.482/0.509/0.381). The P95
+TTFT spread between sessions (173--562\,ms for \texttt{crag} cells vs
+703--2055\,ms for \texttt{baseline} cells, run on different days) reflects
+per-session warm-up variance at $n=30$, not a pipeline effect; the thesis-scale
+run on one box in one session is expected to stabilise it.
+Interpret gains cautiously: corrective pipelines can improve citation
+faithfulness even when fluency gains are modest~\cite{michaels2026dsgt}.
 
 \subsection{Pareto fronts}
 
@@ -77,11 +93,13 @@ different budget constraints.
 
 \subsection{CRAG proxy validity}
 
-\TODO{Table: proxy/action agreement against vendored CRAG reference
-labels for popqa, bio, pubqa, arc\_challenge, from
-\texttt{tools/crag\_validity.py}. The smoke result already shows the
-proxy is non-discriminative on negatives (0\% agreement on Incorrect).
-Do not interpret the Incorrect path as measured accuracy.}
+A first smoke of \texttt{tools/crag\_validity.py} against the vendored CRAG
+reference labels (popqa, 8 entries per class) already shows the flan-t5-base
+proxy is not discriminative on negatives: correct-class passages match the
+reference action, while incorrect-class passages are scored Correct 0\% of
+the time they should be rejected. The full four-dataset table is a pending
+deliverable; until then the \texttt{Incorrect} action distribution in
+Table~\ref{tab:scorecard} must not be interpreted as measured accuracy.
 
 \input{tables/tab_crag_validity}
 
@@ -91,9 +109,9 @@ Any departure from the plan is recorded with its consequence:
 
 \input{tables/tab_deviations}
 
-\TODO{Current deviations: (1) self-judge in Phase A, closed by giving
-the judge its own server; (2) flan-t5-base proxy non-discriminative on
-CRAG Incorrect negatives; interpret with caution.}
+The recorded deviations and their consequences are in
+Table~\ref{tab:deviations}; the course-edition scale row there applies to
+every number in this section.
 
 \subsection{Discussion}
 

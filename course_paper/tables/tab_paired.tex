@@ -11,12 +11,12 @@
 \toprule
 \textbf{Model} & \textbf{Metric} & \textbf{Test} & \textbf{p} & \textbf{q\_FDR} & \textbf{Interpretation} \\
 \midrule
-Qwen2.5-1.5B & Correctness & McNemar exact & -- & -- & -- \\
-Qwen2.5-1.5B & Latency & Wilcoxon & -- & -- & -- \\
-Qwen3-4B & Correctness & McNemar exact & -- & -- & -- \\
-Qwen3-4B & Latency & Wilcoxon & -- & -- & -- \\
-LLaMA-3.1-8B & Correctness & McNemar exact & -- & -- & -- \\
-LLaMA-3.1-8B & Latency & Wilcoxon & -- & -- & -- \\
+Qwen2.5-1.5B & Correctness & McNemar exact & 1 & 1 & not significant at $n=30$ \\
+Qwen2.5-1.5B & Latency & Wilcoxon & $4.42{\times}10^{-6}$ & $2.65{\times}10^{-5}$ & significant: crag slower (evaluator overhead) \\
+Qwen3-4B & Correctness & McNemar exact & 0.219 & 0.656 & not significant \\
+Qwen3-4B & Latency & Wilcoxon & 0.641 & 0.961 & not significant \\
+LLaMA-3.1-8B & Correctness & McNemar exact & 0.453 & 0.906 & not significant \\
+LLaMA-3.1-8B & Latency & Wilcoxon & 0.824 & 0.988 & not significant \\
 \bottomrule
 \end{tabular}
 

@@ -1,0 +1,17 @@
+<html><head><meta charset="utf-8"><title>slm-rag-bench scorecard</title></head>
+<body style="font-family:monospace">
+<h2>slm-rag-bench — scorecard</h2>
+<pre>| cell | n | adj acc % | faithfulness | lat p95 ms | api $ | gpu $ |
+|---|---|---|---|---|---|---|
+| baseline-llama3.1-8b | 30 | 68.8 | 0.3888888888888889 | 5332 | 0.0008 | 0.0709 |
+| baseline-qwen2.5-1.5b | 30 | 53.6 | 0.5773809523809523 | 4329 | 0.0016 | 0.0668 |
+| baseline-qwen3-4b | 30 | 77.3 | 0.5752380952380952 | 8171 | 0.0004 | 0.0787 |
+| crag-llama3.1-8b | 30 | 66.7 | 0.38055555555555554 | 5087 | 0.0003 | 0.0523 |
+| crag-qwen2.5-1.5b | 30 | 53.8 | 0.48166666666666663 | 5427 | 0.0007 | 0.0515 |
+| crag-qwen3-4b | 30 | 81.2 | 0.5088888888888888 | 8856 | 0.0002 | 0.0559 |</pre>
+<h3>Pareto fronts</h3>
+<svg width="420" height="240" style="border:1px solid #ccc"><text x="30" y="14" font-size="11">faithfulness vs p95 latency (green = Pareto)</text><circle cx="110" cy="202" r="5" fill="#888"><title>baseline-llama3.1-8b: x=5331.71 y=0.389</title></circle><text x="116" y="205" font-size="9">baseline-llama3.1-8b</text><circle cx="30" cy="30" r="5" fill="#1a5c2a"><title>baseline-qwen2.5-1.5b: x=4328.52 y=0.577</title></circle><text x="36" y="33" font-size="9">baseline-qwen2.5-1.5b</text><circle cx="336" cy="32" r="5" fill="#888"><title>baseline-qwen3-4b: x=8171.28 y=0.575</title></circle><text x="342" y="35" font-size="9">baseline-qwen3-4b</text><circle cx="90" cy="210" r="5" fill="#888"><title>crag-llama3.1-8b: x=5087.24 y=0.381</title></circle><text x="96" y="213" font-size="9">crag-llama3.1-8b</text><circle cx="117" cy="118" r="5" fill="#888"><title>crag-qwen2.5-1.5b: x=5427.22 y=0.482</title></circle><text x="123" y="121" font-size="9">crag-qwen2.5-1.5b</text><circle cx="390" cy="93" r="5" fill="#888"><title>crag-qwen3-4b: x=8855.60 y=0.509</title></circle><text x="396" y="96" font-size="9">crag-qwen3-4b</text></svg>
+<svg width="420" height="240" style="border:1px solid #ccc"><text x="30" y="14" font-size="11">faithfulness vs GPU-amortised $ (green = Pareto)</text><circle cx="286" cy="202" r="5" fill="#888"><title>baseline-llama3.1-8b: x=0.07 y=0.389</title></circle><text x="292" y="205" font-size="9">baseline-llama3.1-8b</text><circle cx="232" cy="30" r="5" fill="#1a5c2a"><title>baseline-qwen2.5-1.5b: x=0.07 y=0.577</title></circle><text x="238" y="33" font-size="9">baseline-qwen2.5-1.5b</text><circle cx="390" cy="32" r="5" fill="#888"><title>baseline-qwen3-4b: x=0.08 y=0.575</title></circle><text x="396" y="35" font-size="9">baseline-qwen3-4b</text><circle cx="40" cy="210" r="5" fill="#888"><title>crag-llama3.1-8b: x=0.05 y=0.381</title></circle><text x="46" y="213" font-size="9">crag-llama3.1-8b</text><circle cx="30" cy="118" r="5" fill="#1a5c2a"><title>crag-qwen2.5-1.5b: x=0.05 y=0.482</title></circle><text x="36" y="121" font-size="9">crag-qwen2.5-1.5b</text><circle cx="87" cy="93" r="5" fill="#1a5c2a"><title>crag-qwen3-4b: x=0.06 y=0.509</title></circle><text x="93" y="96" font-size="9">crag-qwen3-4b</text></svg>
+<p style="color:#888">Static report. Re-render with: <code>uv run python -m analysis.report</code>.
+Green circles are Pareto-optimal cells; hover for values. No server, no live data.</p>
+</body></html>

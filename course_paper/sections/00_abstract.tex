@@ -28,7 +28,11 @@ $n=30$ queries per cell on a HotpotQA distractor subset, run on a single
 Tesla T4: a pilot-scale course edition. A thesis-scale $n=300$ run on
 rented hardware is planned on the same harness and is expected to tighten
 every confidence interval by roughly a factor of $\sqrt{10}$.
-\TODO{one-sentence headline result once the matrix has run.}
+At pilot scale no cell dominates outright: the fastest cell is also the most
+faithful (baseline qwen2.5-1.5b), the corrective stage adds a significant
+latency cost on the smallest model without a significant correctness gain on
+any model, and qwen3-4b reaches the highest adjusted accuracy (81.2\% with
+the corrective stage).
 We release the harness, the per-query records, and the scorecards so that
 every reported number is reproducible from committed artifacts.
 

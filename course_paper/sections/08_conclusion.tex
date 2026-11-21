@@ -6,10 +6,17 @@
 \section{Conclusion}
 \label{sec:conclusion}
 
-\TODO{One-paragraph conclusion once the matrix has run: which cell
-dominates the faithfulness--cost--latency frontier, whether crag is
-worth its evaluator latency, and the model recommendation under a fixed
-budget.}
+At $n=30$ on a single T4, no cell dominates the faithfulness--cost--latency
+frontier: \texttt{baseline--qwen2.5-1.5b} is the sole latency-front point and
+the most faithful cell, while \texttt{crag--qwen3-4b} trades cost for the best
+adjusted accuracy. The corrective stage is not worth its evaluator latency at
+this scale---its only significant effect is a latency increase on the smallest
+model, with no significant correctness gain---though its rejection behaviour
+behaves as designed (every model rejects more under crag). Under a fixed
+budget we would pick \texttt{qwen3-4b} with the corrective stage when answer
+precision matters, and \texttt{baseline--qwen2.5-1.5b} when tail latency
+matters; the $n=300$ thesis-scale run on rented hardware is required before
+any of these orderings is treated as settled.
 
 This paper offers a \textbf{controlled, reproducible benchmark} for
 comparing small-model RAG under joint quality, faithfulness, latency,

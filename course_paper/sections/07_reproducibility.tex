@@ -34,12 +34,13 @@ reproducible RAG evaluation~\cite{brown2025systematic,murugaraj2025ragvue,saadfa
 \texttt{tools.selfcheck} runs nine CPU checks covering retrieval,
 metrics logging, the pipeline, the cell gates, the matrix, data loading,
 the retriever, and the CRAG evaluator; every gate condition is verified
-to fire when broken. The three \texttt{crag} cells ran end-to-end on a free
-Colab T4 at $n=30$ (19/19 gates each) and are committed under
-\texttt{results/crag-*/}; their scorecard rows fill
-Table~\ref{tab:scorecard}. The \texttt{baseline} rows,
-Table~\ref{tab:paired}'s paired tests, and Table~\ref{tab:human}'s 50 hand
-labels remain placeholders in this course edition.
+to fire when broken. All six cells of the grid ran end-to-end on free Colab
+T4s at $n=30$ (19/19 gates each) and are committed under \texttt{results/*/};
+their rows fill Table~\ref{tab:scorecard}, and the paired tests in
+Table~\ref{tab:paired} were computed by \texttt{analysis/scorecard.py} into
+\texttt{results/scorecard\_summary.md} (McNemar exact, Wilcoxon signed-rank,
+Benjamini--Hochberg). Table~\ref{tab:human}'s 50 hand labels remain the one
+outstanding human deliverable in this course edition.
 
 \textbf{Availability.}
 The harness, configs, vendor data, and this paper's source are at
