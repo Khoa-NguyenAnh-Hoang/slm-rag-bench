@@ -1,0 +1,26 @@
+% ============================================================
+%  tables/tab_scorecard.tex
+%  Placeholder scorecard -- replace every "--" after the GPU run.
+% ============================================================
+
+\begin{table}[h]
+\centering
+\caption{Cross-cell scorecard (pilot scale; $n=30$ queries per cell on a Tesla T4).}
+\label{tab:scorecard}
+\begin{tabular}{llcccccccc}
+\toprule
+\textbf{Cell} & \textbf{Pipeline} & \textbf{AdjAcc \%} & \textbf{Faithfulness} & \textbf{Halluc \%} & \textbf{Reject \%} & \textbf{Lat P95 ms} & \textbf{TTFT P95 ms} & \textbf{API \$} & \textbf{GPU \$} \\
+\midrule
+baseline--qwen2.5-1.5b & baseline & -- & -- & -- & -- & -- & -- & -- & -- \\
+crag--qwen2.5-1.5b & crag & 53.8 & 0.482 & 40.0 & 13.3 & 5427 & 173.0 & 0.000693 & 0.051543 \\
+baseline--qwen3-4b & baseline & -- & -- & -- & -- & -- & -- & -- & -- \\
+crag--qwen3-4b & crag & 81.2 & 0.509 & 10.0 & 46.7 & 8856 & 404.8 & 0.000193 & 0.055850 \\
+baseline--llama3.1-8b & baseline & -- & -- & -- & -- & -- & -- & -- & -- \\
+crag--llama3.1-8b & crag & 66.7 & 0.381 & 13.3 & 60.0 & 5087 & 562.0 & 0.000322 & 0.052306 \\
+\bottomrule
+\end{tabular}
+
+\caption*{Retrieval metrics (MAP@3, NDCG@10, Recall@10) and retrieval
+depth are recorded per cell in \texttt{results/*/scorecard.json} and in
+the static report \texttt{results/report.html}.}
+\end{table}

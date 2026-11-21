@@ -1,0 +1,22 @@
+# LaTeX build artifacts (never commit these)
+*.aux
+*.bbl
+*.blg
+*.brf
+*.log
+*.out
+*.toc
+*.lof
+*.lot
+*.snm
+*.nav
+*.vrb
+*.thm
+*.pdf
+*.synctex.gz
+*.fdb_latexmk
+*.fls
+*.xdv
+
+# Scratch exports from this repo's pipeline
+paper_content.txt

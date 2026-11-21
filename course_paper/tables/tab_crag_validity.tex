@@ -1,0 +1,32 @@
+% ============================================================
+%  tables/tab_crag_validity.tex
+%  Placeholder CRAG proxy validity check.
+% ============================================================
+
+\begin{table}[h]
+\centering
+\caption{CRAG proxy vs.\ vendored reference labels (placeholder).}
+\label{tab:crag_validity}
+\begin{tabular}{llccp{3.2cm}}
+\toprule
+\textbf{Dataset} & \textbf{Gold action} & \textbf{Agreement \%} & \textbf{N} & \textbf{Takeaway} \\
+\midrule
+popqa & Correct & -- & -- & -- \\
+popqa & Incorrect & -- & -- & -- \\
+popqa & Ambiguous & -- & -- & -- \\
+bio & Correct & -- & -- & -- \\
+bio & Incorrect & -- & -- & -- \\
+bio & Ambiguous & -- & -- & -- \\
+pubqa & Correct & -- & -- & -- \\
+pubqa & Incorrect & -- & -- & -- \\
+pubqa & Ambiguous & -- & -- & -- \\
+arc\_challenge & Correct & -- & -- & -- \\
+arc\_challenge & Incorrect & -- & -- & -- \\
+arc\_challenge & Ambiguous & -- & -- & -- \\
+\bottomrule
+\end{tabular}
+
+\caption*{Smoke result already available: the flan-t5-base proxy is not
+discriminative on Incorrect passages, so its Incorrect action must not be
+interpreted as measured accuracy.}
+\end{table}
