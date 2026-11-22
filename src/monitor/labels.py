@@ -40,7 +40,7 @@ def _rows(results_root: Path) -> list[dict]:
                            q.get("question_id", ""))),
                 "question": q.get("question", ""),
                 "answer": (q.get("answer") or "").replace("\n", " "),
-                "contexts": " ||| ".join(q.get("contexts") or [])[:1500],
+                "contexts": " ||| ".join(q.get("contexts") or []),
                 "action": q.get("action") or "",
                 "det_label": (q.get("extra") or {}).get("label") or q.get("label", ""),
                 "ragas_faithfulness": raf if raf is not None else "",
