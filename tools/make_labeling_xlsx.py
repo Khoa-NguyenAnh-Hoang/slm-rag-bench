@@ -40,6 +40,7 @@ def _set_widths(ws, cols):
 def build() -> int:
     from openpyxl import Workbook
     from openpyxl.styles import Alignment, Font
+    from openpyxl.utils import get_column_letter
     from openpyxl.worksheet.datavalidation import DataValidation
 
     rows = list(csv.DictReader(CSV_PATH.open(encoding="utf-8", newline="")))
@@ -60,7 +61,8 @@ def build() -> int:
                         errorTitle="Rubric labels only",
                         error="Use Factual, Hallucination or Refusal.")
     ws.add_data_validation(dv)
-    dv.add(f"H2:H{len(rows) + 1}")
+    label_col = get_column_letter(LABEL_COLS.index("human_label") + 1)   # G
+    dv.add(f"{label_col}2:{label_col}{len(rows) + 1}")
     ws.freeze_panes = "A2"
 
     ref = wb.create_sheet("reference")
