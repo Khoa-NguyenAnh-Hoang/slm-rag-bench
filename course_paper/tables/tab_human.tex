@@ -5,22 +5,28 @@
 
 \begin{table}[h]
 \centering
-\caption{Human--judge agreement on B2's 50 stratified labels
-(placeholder).}
+\caption{Human--deterministic agreement on 50 stratified labels
+(8--9 per cell).}
 \label{tab:human}
 \begin{tabular}{llccc}
 \toprule
 \textbf{Model} & \textbf{Pipeline} & \textbf{Agreement \%} & \textbf{Cohen's $\kappa$} & \textbf{Notes} \\
 \midrule
-Qwen2.5-1.5B & baseline & -- & -- & -- \\
-Qwen2.5-1.5B & crag & -- & -- & -- \\
-Qwen3-4B & baseline & -- & -- & -- \\
-Qwen3-4B & crag & -- & -- & -- \\
-LLaMA-3.1-8B & baseline & -- & -- & -- \\
-LLaMA-3.1-8B & crag & -- & -- & -- \\
+Qwen2.5-1.5B & baseline & 75.0 & --- & n=8 \\
+Qwen2.5-1.5B & crag & 87.5 & --- & n=8 \\
+Qwen3-4B & baseline & 77.8 & --- & n=9 \\
+Qwen3-4B & crag & 75.0 & --- & n=8 \\
+LLaMA-3.1-8B & baseline & 88.9 & --- & n=9 \\
+LLaMA-3.1-8B & crag & 75.0 & --- & n=8 \\
 \bottomrule
 \end{tabular}
 
-\caption*{Rubric: Factual / Hallucination / Refusal (Mala's three
-labels). Human labels are a human deliverable and are not fabricated.}
+\caption*{Rubric: Factual / Hallucination / Refusal (Mala's three labels),
+assigned blind to the deterministic and judge columns. Agreement is per cell;
+Cohen's $\kappa$ is pooled over all 50 labels ($\kappa = 0.70$, substantial
+agreement) because per-cell $\kappa$ is not meaningful at 8--9 samples. The 10
+disagreements split symmetrically across both pipelines: six answers the
+substring labeler marked Hallucinated whose claims were supported (surface-form
+and paraphrase misses), four it marked Correct from a substring match while the
+claim was unsupported. Refusal agreed in 16/16 cases.}
 \end{table}

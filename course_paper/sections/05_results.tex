@@ -85,9 +85,19 @@ different budget constraints.
 
 \subsection{Human-label agreement}
 
-\TODO{Table: agreement percentage and Cohen's kappa from
-\texttt{src.monitor.labels score} on B2's 50 hand labels
-(\emph{Factual / Hallucination / Refusal}).}
+\texttt{src.monitor.labels export} sampled 50 rows round-robin across the six
+(cell, label) buckets; the author assigned \emph{Factual / Hallucination /
+Refusal} from question, contexts, and answer, blind to the deterministic and
+judge columns. Agreement with the deterministic labels is 80.0\% with pooled
+Cohen's $\kappa = 0.70$ (Table~\ref{tab:human}). Refusal is perfectly
+consistent (16/16) --- the abstention path means the same thing to the human
+and to the harness. The 10 substantive disagreements fall in two symmetric
+classes: six answers the substring labeler marked Hallucinated but whose
+claims were supported by the retrieved contexts (surface-form and paraphrase
+misses), and four it marked Correct because the gold string appeared in the
+answer while the claim itself was unsupported. No pipeline bias appears
+(agreement 75.0--88.9\% on both), so the deterministic labels read as a
+reproducible approximation of a careful human judge rather than ground truth.
 
 \input{tables/tab_human}
 

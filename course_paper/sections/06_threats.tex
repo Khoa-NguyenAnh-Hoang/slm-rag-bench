@@ -11,7 +11,8 @@ Faithfulness is computed by an LLM judge rather than by human annotators
 on every answer, so it inherits judge sensitivity---prompt phrasing,
 temperature, and the underlying model can all move the
 score~\cite{es2023ragas,murugaraj2025ragvue}. The 50-sample human-label
-agreement study (Section~\ref{sec:results}) calibrates this risk.
+agreement study (Section~\ref{sec:results}: agreement 80.0\%, Cohen's
+$\kappa = 0.70$) calibrates this risk.
 Faithfulness can also diverge from factual correctness: an answer may be
 supported by retrieved evidence yet factually wrong, or factually right
 yet unsupported by the retrieved context~\cite{murugaraj2025ragvue}.
